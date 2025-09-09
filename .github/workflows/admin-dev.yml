@@ -71,6 +71,6 @@ jobs:
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/recipick-frontend-admin:dev
             docker run -d \
               --name recipick-frontend-admin \
-              -p ${{ env.APP_PORT }}:80 \
+              -p ${{ vars.APP_PORT }}:80 \
               --restart unless-stopped \
               ${{ secrets.DOCKERHUB_USERNAME }}/recipick-frontend-admin:dev
