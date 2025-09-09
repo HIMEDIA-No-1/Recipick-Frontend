@@ -94,6 +94,25 @@ importers:
         specifier: ^7.1.2
         version: 7.1.4
 
+  libs/ui:
+    dependencies:
+      react:
+        specifier: ^19.1.1
+        version: 19.1.1
+      react-dom:
+        specifier: ^19.1.1
+        version: 19.1.1(react@19.1.1)
+    devDependencies:
+      '@types/react':
+        specifier: ^19.1.12
+        version: 19.1.12
+      '@types/react-dom':
+        specifier: ^19.1.9
+        version: 19.1.9(@types/react@19.1.12)
+      typescript:
+        specifier: ~5.8.3
+        version: 5.8.3
+
 packages:
 
   '@esbuild/aix-ppc64@0.25.9':
