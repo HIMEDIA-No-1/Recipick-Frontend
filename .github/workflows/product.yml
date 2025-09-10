@@ -1,0 +1,81 @@
+name: Recipick Frontend Product CI/CD
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'apps/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'apps/**'
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.changes.outputs.changes }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          list-files: json
+          filters: |
+            admin: 'apps/admin/**'
+            user: 'apps/user/**'
+
+  build:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.matrix != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: ${{ fromJSON(needs.detect-changes.outputs.matrix) }}
+    environment: ${{ matrix.module }}-prod
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: |
+            APP_NAME=${{ matrix.module }}
+            NODE_ENV=production
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/recipick-frontend-${{ matrix.module }}:prod
+            ${{ secrets.DOCKERHUB_USERNAME }}/recipick-frontend-${{ matrix.module }}:prod-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: [detect-changes, build]
+    if: needs.detect-changes.outputs.matrix != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: ${{ fromJSON(needs.detect-changes.outputs.matrix) }}
+    environment: ${{ matrix.module }}-prod
+    steps:
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          port: ${{ secrets.SERVER_PORT }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_PASSWORD }}
+          script: |
+            docker stop recipick-frontend-${{ matrix.module }} || true
+            docker rm recipick-frontend-${{ matrix.module }} || true
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/recipick-frontend-${{ matrix.module }}:prod
+            docker run -d \
+              --name recipick-frontend-${{ matrix.module }} \
+              -p ${{ vars.APP_PORT }}:80 \
+              --restart unless-stopped \
+              ${{ secrets.DOCKERHUB_USERNAME }}/recipick-frontend-${{ matrix.module }}:prod
