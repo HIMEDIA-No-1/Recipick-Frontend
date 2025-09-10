@@ -3,18 +3,15 @@ name: Recipick Frontend Product CI/CD
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'apps/**'
   pull_request:
     branches: [ main ]
-    paths:
-      - 'apps/**'
 
 jobs:
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.changes.outputs.changes }}
+      root-changed: ${{ steps.changes.outputs.root }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v2
@@ -24,14 +21,17 @@ jobs:
           filters: |
             admin: 'apps/admin/**'
             user: 'apps/user/**'
+            root:
+              - '!apps/**'
+              - '**'
 
   build:
     needs: detect-changes
-    if: needs.detect-changes.outputs.matrix != '[]'
+    if: needs.detect-changes.outputs.matrix != '[]' || needs.detect-changes.outputs.root-changed == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        module: ${{ fromJSON(needs.detect-changes.outputs.matrix) }}
+        module: ${{ fromJSON(needs.detect-changes.outputs.root-changed == 'true' && '["admin", "user"]' || needs.detect-changes.outputs.matrix) }}
     environment: ${{ matrix.module }}-prod
     steps:
       - uses: actions/checkout@v4
@@ -56,11 +56,11 @@ jobs:
 
   deploy:
     needs: [detect-changes, build]
-    if: needs.detect-changes.outputs.matrix != '[]'
+    if: needs.detect-changes.outputs.matrix != '[]' || needs.detect-changes.outputs.root-changed == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        module: ${{ fromJSON(needs.detect-changes.outputs.matrix) }}
+        module: ${{ fromJSON(needs.detect-changes.outputs.root-changed == 'true' && '["admin", "user"]' || needs.detect-changes.outputs.matrix) }}
     environment: ${{ matrix.module }}-prod
     steps:
       - name: Deploy to server
