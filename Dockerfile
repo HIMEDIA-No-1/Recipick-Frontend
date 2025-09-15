@@ -1,6 +1,6 @@
 FROM node:22-alpine AS builder
 
-ARG APP_NAME
+ARG MODULE
 ARG NODE_ENV=production
 
 WORKDIR /app
@@ -14,13 +14,13 @@ COPY libs/ libs/
 
 RUN pnpm install --frozen-lockfile
 
-RUN pnpm --filter ${APP_NAME} build
+RUN pnpm --filter ${MODULE} build
 
 FROM nginx:alpine AS production
 
-ARG APP_NAME
+ARG MODULE
 
-COPY --from=builder /app/apps/${APP_NAME}/dist /usr/share/nginx/html
+COPY --from=builder /app/apps/${MODULE}/dist /usr/share/nginx/html
 
 EXPOSE 80
 
