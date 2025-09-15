@@ -6,12 +6,7 @@ on:
   pull_request:
     branches: [ dev ]
 
-env:
-  # 새 모듈 추가시 여기만 수정
-  MODULES: 'admin, user'
-
 jobs:
-  # 변경된 파일을 감지하여 빌드할 모듈 결정
   detect-changes:
     name: Detect changed modules
     runs-on: ubuntu-latest
@@ -21,14 +16,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Generate path filters
+      - name: Auto-detect modules and generate filters
         id: generate-filters
         run: |
-          # 루트 파일 변경시 전체 빌드 대상 (apps/ 제외한 모든 파일)
-          filters="root: ['**', '!apps/**']"
+          # Auto-detect modules from apps/ directory
+          if [ ! -d "apps" ]; then
+            echo "Error: apps/ directory not found"
+            exit 1
+          fi
 
-          # 각 모듈별 경로 필터 생성
-          IFS=',' read -ra MODULE_ARRAY <<< "${{ env.MODULES }}"
+          MODULES=$(ls -1 apps/ | tr '\n' ',' | sed 's/,$//')
+          echo "Detected modules: $MODULES"
+          echo "modules=$MODULES" >> $GITHUB_OUTPUT
+
+          # Generate path filters
+          filters="root: ['**', '!apps/**']"
+          IFS=',' read -ra MODULE_ARRAY <<< "$MODULES"
           for module in "${MODULE_ARRAY[@]}"; do
             filters="${filters}"$'\n'"${module}: 'apps/${module}/**'"
           done
@@ -46,22 +49,19 @@ jobs:
       - name: Determine modules to build
         id: determine-modules
         run: |
-          # 환경변수에서 모든 모듈 목록 생성
-          IFS=',' read -ra MODULE_ARRAY <<< "${{ env.MODULES }}"
+          DETECTED_MODULES="${{ steps.generate-filters.outputs.modules }}"
+          IFS=',' read -ra MODULE_ARRAY <<< "$DETECTED_MODULES"
           ALL_MODULES=$(printf '%s\n' "${MODULE_ARRAY[@]}" | jq -R . | jq -s .)
 
           if [[ "${{ steps.filter.outputs.root }}" == "true" ]]; then
-            # 루트 파일 변경시 전체 모듈 빌드
             echo "Root files changed - building all modules"
             echo "modules=${ALL_MODULES}" >> $GITHUB_OUTPUT
           else
-            # 개별 모듈 변경시 해당 모듈만 빌드
             modules=$(echo '${{ steps.filter.outputs.changes }}' | jq -c '. | map(select(. != "root"))')
             echo "Individual modules changed: ${modules}"
             echo "modules=${modules}" >> $GITHUB_OUTPUT
           fi
 
-  # 변경된 모듈들을 병렬로 빌드
   build:
     name: Build Docker images
     needs: detect-changes
@@ -81,8 +81,8 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Login to Container Registry
-        uses: docker/login-action@v3
         if: github.event_name == 'push'
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
