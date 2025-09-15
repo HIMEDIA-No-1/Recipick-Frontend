@@ -20,8 +20,13 @@ FROM nginx:alpine AS production
 
 ARG MODULE
 
+RUN apk add --no-cache gettext
+
 COPY --from=builder /app/apps/${MODULE}/dist /usr/share/nginx/html
+
+COPY docker-entrypoint.sh /
+RUN chmod +x /docker-entrypoint.sh
 
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
