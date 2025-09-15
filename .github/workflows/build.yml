@@ -51,7 +51,7 @@ jobs:
         run: |
           DETECTED_MODULES="${{ steps.generate-filters.outputs.modules }}"
           IFS=',' read -ra MODULE_ARRAY <<< "$DETECTED_MODULES"
-          ALL_MODULES=$(printf '%s\n' "${MODULE_ARRAY[@]}" | jq -R . | jq -s .)
+          ALL_MODULES=$(printf '%s\n' "${MODULE_ARRAY[@]}" | jq -R . | jq -s . -c)
 
           if [[ "${{ steps.filter.outputs.root }}" == "true" ]]; then
             echo "Root files changed - building all modules"
