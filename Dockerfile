@@ -24,6 +24,7 @@ RUN apk add --no-cache gettext
 
 COPY --from=builder /app/apps/${MODULE}/dist /usr/share/nginx/html
 
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY docker-entrypoint.sh /
 RUN chmod +x /docker-entrypoint.sh
 
