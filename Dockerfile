@@ -1,6 +1,6 @@
 FROM node:22-alpine AS builder
 
-ARG APP_NAME
+ARG MODULE
 ARG NODE_ENV=production
 
 WORKDIR /app
@@ -14,14 +14,20 @@ COPY libs/ libs/
 
 RUN pnpm install --frozen-lockfile
 
-RUN pnpm --filter ${APP_NAME} build
+RUN pnpm --filter ${MODULE} build
 
 FROM nginx:alpine AS production
 
-ARG APP_NAME
+ARG MODULE
 
-COPY --from=builder /app/apps/${APP_NAME}/dist /usr/share/nginx/html
+RUN apk add --no-cache gettext
+
+COPY --from=builder /app/apps/${MODULE}/dist /usr/share/nginx/html
+
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY docker-entrypoint.sh /
+RUN chmod +x /docker-entrypoint.sh
 
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
