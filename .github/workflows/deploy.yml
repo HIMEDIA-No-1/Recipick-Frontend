@@ -10,33 +10,51 @@ on:
         options:
           - recipick-frontend-admin
           - recipick-frontend-user
-      environment:
-        description: '배포 환경 선택'
-        required: true
-        type: choice
-        options:
-          - dev
-          - prod
 
 jobs:
   deploy:
-    name: ${{ github.event.inputs.image }} → ${{ github.event.inputs.environment }} 배포
+    name: ${{ github.event.inputs.image }} → ${{ github.ref_name }} 배포
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.image }}:${{ github.event.inputs.environment }}
+    environment: ${{ github.event.inputs.image }}:${{ github.ref_name == 'main' && 'prod' || github.ref_name == 'dev' && 'dev' || 'invalid' }}
 
     steps:
+      - name: 브랜치 검증
+        run: |
+          if [ "${{ github.ref_name }}" != "main" ] && [ "${{ github.ref_name }}" != "dev" ]; then
+            echo "❌ 배포는 main 또는 dev 브랜치에서만 가능합니다. 현재 브랜치: ${{ github.ref_name }}"
+            exit 1
+          fi
+          echo "✅ 브랜치 검증 완료: ${{ github.ref_name }}"
+
+      - name: 환경 변수 설정
+        id: env
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "environment=prod" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref_name }}" = "dev" ]; then
+            echo "environment=dev" >> $GITHUB_OUTPUT
+          fi
+
       - name: 서버 정보 설정
         id: server
         run: |
-          if [ "${{ github.event.inputs.environment }}" = "prod" ]; then
+          if [ "${{ steps.env.outputs.environment }}" = "prod" ]; then
             echo "host=${{ secrets.PROD_SERVER_HOST }}" >> $GITHUB_OUTPUT
             echo "user=${{ secrets.PROD_SERVER_USER }}" >> $GITHUB_OUTPUT
-            echo "key=${{ secrets.PROD_SERVER_SSH_KEY }}" >> $GITHUB_OUTPUT
+            {
+              echo 'key<<EOF'
+              echo '${{ secrets.PROD_SERVER_SSH_KEY }}'
+              echo 'EOF'
+            } >> $GITHUB_OUTPUT
             echo "port=${{ secrets.PROD_SERVER_PORT }}" >> $GITHUB_OUTPUT
           else
             echo "host=${{ secrets.DEV_SERVER_HOST }}" >> $GITHUB_OUTPUT
             echo "user=${{ secrets.DEV_SERVER_USER }}" >> $GITHUB_OUTPUT
-            echo "key=${{ secrets.DEV_SERVER_SSH_KEY }}" >> $GITHUB_OUTPUT
+            {
+              echo 'key<<EOF'
+              echo '${{ secrets.DEV_SERVER_SSH_KEY }}'
+              echo 'EOF'
+            } >> $GITHUB_OUTPUT
             echo "port=${{ secrets.DEV_SERVER_PORT }}" >> $GITHUB_OUTPUT
           fi
 
@@ -50,7 +68,7 @@ jobs:
           script: |
             set -e
 
-            IMAGE="ghcr.io/${{ github.repository_owner }}/${{ github.event.inputs.image }}:${{ github.event.inputs.environment }}"
+            IMAGE="ghcr.io/${{ github.repository_owner }}/${{ github.event.inputs.image }}:${{ steps.env.outputs.environment }}"
             CONTAINER="${{ github.event.inputs.image }}"
 
             docker stop $CONTAINER 2>/dev/null || true
@@ -58,22 +76,15 @@ jobs:
             docker pull $IMAGE
             docker image prune -f || true
 
-            case "${{ github.event.inputs.image }}:${{ github.event.inputs.environment }}" in
-              "recipick-frontend-admin:dev")
+            case "${{ github.event.inputs.image }}:${{ steps.env.outputs.environment }}" in
+              "recipick-frontend-user:dev")
                 docker run -d \
                   --name $CONTAINER \
                   --restart unless-stopped \
                   -p 3001:80 \
                   $IMAGE
                 ;;
-              "recipick-frontend-admin:prod")
-                docker run -d \
-                  --name $CONTAINER \
-                  --restart unless-stopped \
-                  -p 3000:80 \
-                  $IMAGE
-                ;;
-              "recipick-frontend-user:dev")
+              "recipick-frontend-admin:dev")
                 docker run -d \
                   --name $CONTAINER \
                   --restart unless-stopped \
@@ -84,7 +95,14 @@ jobs:
                 docker run -d \
                   --name $CONTAINER \
                   --restart unless-stopped \
-                  -p 3003:80 \
+                  -p 3001:80 \
+                  $IMAGE
+                ;;
+              "recipick-frontend-admin:prod")
+                docker run -d \
+                  --name $CONTAINER \
+                  --restart unless-stopped \
+                  -p 3002:80 \
                   $IMAGE
                 ;;
               *)
