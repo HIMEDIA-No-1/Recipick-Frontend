@@ -77,20 +77,6 @@ jobs:
             docker image prune -f || true
 
             case "${{ github.event.inputs.image }}:${{ steps.env.outputs.environment }}" in
-              "recipick-frontend-user:prod")
-                docker run -d \
-                  --name $CONTAINER \
-                  --restart unless-stopped \
-                  -p 3001:80 \
-                  $IMAGE
-                ;;
-              "recipick-frontend-admin:prod")
-                docker run -d \
-                  --name $CONTAINER \
-                  --restart unless-stopped \
-                  -p 3002:80 \
-                  $IMAGE
-                ;;
               "recipick-frontend-user:dev")
                 docker run -d \
                   --name $CONTAINER \
@@ -99,6 +85,20 @@ jobs:
                   $IMAGE
                 ;;
               "recipick-frontend-admin:dev")
+                docker run -d \
+                  --name $CONTAINER \
+                  --restart unless-stopped \
+                  -p 3002:80 \
+                  $IMAGE
+                ;;
+              "recipick-frontend-user:prod")
+                docker run -d \
+                  --name $CONTAINER \
+                  --restart unless-stopped \
+                  -p 3001:80 \
+                  $IMAGE
+                ;;
+              "recipick-frontend-admin:prod")
                 docker run -d \
                   --name $CONTAINER \
                   --restart unless-stopped \
