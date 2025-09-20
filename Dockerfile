@@ -17,7 +17,8 @@ RUN pnpm install --frozen-lockfile
 COPY apps/ apps/
 COPY libs/ libs/
 
-# 빌드 실행
+# 특정 모듈 의존성 설치 및 빌드
+RUN pnpm --filter ${MODULE} install
 RUN pnpm --filter ${MODULE} build
 
 FROM nginx:alpine AS production
