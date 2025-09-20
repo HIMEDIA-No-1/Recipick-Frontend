@@ -84,14 +84,14 @@ jobs:
                   -p 3001:80 \
                   $IMAGE
                 ;;
-              "recipick-frontend-user:dev")
+              "recipick-frontend-admin:prod")
                 docker run -d \
                   --name $CONTAINER \
                   --restart unless-stopped \
                   -p 3002:80 \
                   $IMAGE
                 ;;
-              "recipick-frontend-admin:prod")
+              "recipick-frontend-user:dev")
                 docker run -d \
                   --name $CONTAINER \
                   --restart unless-stopped \
