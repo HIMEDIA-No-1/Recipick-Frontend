@@ -31,12 +31,20 @@ jobs:
           if [ "${{ github.event.inputs.environment }}" = "prod" ]; then
             echo "host=${{ secrets.PROD_SERVER_HOST }}" >> $GITHUB_OUTPUT
             echo "user=${{ secrets.PROD_SERVER_USER }}" >> $GITHUB_OUTPUT
-            echo "key=${{ secrets.PROD_SERVER_SSH_KEY }}" >> $GITHUB_OUTPUT
+            {
+              echo 'key<<EOF'
+              echo '${{ secrets.PROD_SERVER_SSH_KEY }}'
+              echo 'EOF'
+            } >> $GITHUB_OUTPUT
             echo "port=${{ secrets.PROD_SERVER_PORT }}" >> $GITHUB_OUTPUT
           else
             echo "host=${{ secrets.DEV_SERVER_HOST }}" >> $GITHUB_OUTPUT
             echo "user=${{ secrets.DEV_SERVER_USER }}" >> $GITHUB_OUTPUT
-            echo "key=${{ secrets.DEV_SERVER_SSH_KEY }}" >> $GITHUB_OUTPUT
+            {
+              echo 'key<<EOF'
+              echo '${{ secrets.DEV_SERVER_SSH_KEY }}'
+              echo 'EOF'
+            } >> $GITHUB_OUTPUT
             echo "port=${{ secrets.DEV_SERVER_PORT }}" >> $GITHUB_OUTPUT
           fi
 
