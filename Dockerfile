@@ -11,7 +11,7 @@ RUN npm install -g pnpm@10.15.1
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # 의존성 설치 (별도 레이어로 캐시 최적화)
-RUN pnpm install --frozen-lockfile --prod=false
+RUN pnpm install --frozen-lockfile
 
 # 소스 코드 복사
 COPY apps/ apps/
