@@ -1,0 +1,105 @@
+name: 배포
+
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: '배포할 이미지 선택'
+        required: true
+        type: choice
+        options:
+          - recipick-frontend-admin
+          - recipick-frontend-user
+      environment:
+        description: '배포 환경 선택'
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
+
+jobs:
+  deploy:
+    name: ${{ github.event.inputs.image }} → ${{ github.event.inputs.environment }} 배포
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.image }}:${{ github.event.inputs.environment }}
+
+    steps:
+      - name: 이미지 태그 설정
+        id: tag
+        run: |
+          if [ "${{ github.event.inputs.environment }}" = "prod" ]; then
+            echo "tag=prod" >> $GITHUB_OUTPUT
+          else
+            echo "tag=dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 서버 정보 설정
+        id: server
+        run: |
+          if [ "${{ github.event.inputs.environment }}" = "prod" ]; then
+            echo "host=${{ secrets.PROD_SERVER_HOST }}" >> $GITHUB_OUTPUT
+            echo "user=${{ secrets.PROD_SERVER_USER }}" >> $GITHUB_OUTPUT
+            echo "key=${{ secrets.PROD_SERVER_SSH_KEY }}" >> $GITHUB_OUTPUT
+            echo "port=${{ secrets.PROD_SERVER_PORT }}" >> $GITHUB_OUTPUT
+          else
+            echo "host=${{ secrets.DEV_SERVER_HOST }}" >> $GITHUB_OUTPUT
+            echo "user=${{ secrets.DEV_SERVER_USER }}" >> $GITHUB_OUTPUT
+            echo "key=${{ secrets.DEV_SERVER_SSH_KEY }}" >> $GITHUB_OUTPUT
+            echo "port=${{ secrets.DEV_SERVER_PORT }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: SSH 배포 실행
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ steps.server.outputs.host }}
+          username: ${{ steps.server.outputs.user }}
+          key: ${{ steps.server.outputs.key }}
+          port: ${{ steps.server.outputs.port }}
+          script: |
+            set -e
+
+            IMAGE="ghcr.io/${{ github.repository_owner }}/${{ github.event.inputs.image }}:${{ steps.tag.outputs.tag }}"
+            CONTAINER="${{ github.event.inputs.image }}"
+
+            docker stop $CONTAINER 2>/dev/null || true
+            docker rm $CONTAINER 2>/dev/null || true
+            docker pull $IMAGE
+            docker image prune -f || true
+
+            case "${{ github.event.inputs.image }}-${{ github.event.inputs.environment }}" in
+              "recipick-frontend-admin-dev")
+                docker run -d \
+                  --name $CONTAINER \
+                  --restart unless-stopped \
+                  -p 3001:80 \
+                  $IMAGE
+                ;;
+              "recipick-frontend-admin-prod")
+                docker run -d \
+                  --name $CONTAINER \
+                  --restart unless-stopped \
+                  -p 3000:80 \
+                  $IMAGE
+                ;;
+              "recipick-frontend-user-dev")
+                docker run -d \
+                  --name $CONTAINER \
+                  --restart unless-stopped \
+                  -p 3002:80 \
+                  $IMAGE
+                ;;
+              "recipick-frontend-user-prod")
+                docker run -d \
+                  --name $CONTAINER \
+                  --restart unless-stopped \
+                  -p 3003:80 \
+                  $IMAGE
+                ;;
+              *)
+                exit 1
+                ;;
+            esac
+
+            sleep 5
+            docker ps --filter "name=$CONTAINER" || exit 1
