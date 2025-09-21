@@ -8,7 +8,7 @@ import SignupPage from '../pages/auth/SignupPage.tsx';
 import RecipeListPage from '../pages/recipe/RecipeListPage.tsx';
 import RecipeDetailPage from '../pages/recipe/RecipeDetailPage.tsx';
 import NotificationPage from '../pages/notification/NotificationPage.tsx';
-import MyProfilePage from '../pages/mypage/MyProfilePage.tsx';
+import MyProfileEditPage from '../pages/mypage/MyProfileEditPage.tsx';
 import MyRecipePage from '../pages/mypage/MyRecipePage.tsx';
 import MyStatisticsPage from '../pages/mypage/MyStatisticsPage.tsx';
 import FridgeListPage from '../pages/refrigerator/FridgeListPage.tsx';
@@ -33,7 +33,7 @@ const UserRoutes = () => {
                     <Route path="/recipes" element={<RecipeListPage />} />
                     <Route path="/recipes/:recipeId" element={<RecipeDetailPage />} />
                     <Route path="/notifications" element={<NotificationPage />} />
-                    <Route path="/mypage/profile" element={<MyProfilePage />} />
+                    <Route path="/mypage/profile" element={<MyProfileEditPage />} />
                     <Route path="/mypage/recipe" element={<MyRecipePage />} />
                     <Route path="/mypage/statistics" element={<MyStatisticsPage />} />
                 </Route>
