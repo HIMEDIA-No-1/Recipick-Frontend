@@ -81,6 +81,7 @@ jobs:
                 docker run -d \
                   --name $CONTAINER \
                   --restart unless-stopped \
+                  -e TZ=Asia/Seoul \
                   -p 3001:80 \
                   $IMAGE
                 ;;
@@ -88,6 +89,7 @@ jobs:
                 docker run -d \
                   --name $CONTAINER \
                   --restart unless-stopped \
+                  -e TZ=Asia/Seoul \
                   -p 3002:80 \
                   $IMAGE
                 ;;
@@ -95,6 +97,7 @@ jobs:
                 docker run -d \
                   --name $CONTAINER \
                   --restart unless-stopped \
+                  -e TZ=Asia/Seoul \
                   -p 3001:80 \
                   $IMAGE
                 ;;
@@ -102,6 +105,7 @@ jobs:
                 docker run -d \
                   --name $CONTAINER \
                   --restart unless-stopped \
+                  -e TZ=Asia/Seoul \
                   -p 3002:80 \
                   $IMAGE
                 ;;
