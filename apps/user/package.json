@@ -10,8 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "lodash-es": "^4.17.21",
+    "lucide-react": "^0.544.0",
     "react": "^19.1.1",
+    "react-beautiful-dnd": "^13.1.1",
     "react-dom": "^19.1.1",
+    "tailwind-scrollbar-hide": "^4.0.0",
     "zustand": "^5.0.8"
   },
   "devDependencies": {
