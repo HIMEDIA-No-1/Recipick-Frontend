@@ -15,7 +15,6 @@ RUN pnpm install --frozen-lockfile
 
 # 소스 코드 복사
 COPY apps/ apps/
-COPY libs/ libs/
 
 # 특정 모듈 의존성 설치 및 빌드
 RUN pnpm --filter ${MODULE} install
