@@ -2,7 +2,6 @@ FROM node:22-alpine AS builder
 
 ARG MODULE
 ARG NODE_ENV=production
-WORKDIR /app
 
 # pnpm 설치
 RUN npm install -g pnpm@10.15.1
@@ -17,8 +16,9 @@ RUN pnpm install --frozen-lockfile
 COPY apps/ apps/
 COPY libs/ libs/
 
+WORKDIR /app
+
 # 특정 모듈 의존성 설치 및 빌드
-RUN pnpm --filter ${MODULE} install
 RUN pnpm --filter ${MODULE} build
 
 FROM nginx:alpine AS production
