@@ -19,7 +19,7 @@ import FindPasswordPage from "../pages/auth/FindPasswordPage.tsx";
 
 const UserRoutes = () => {
     return (
-        <BrowserRouter>
+
             <Routes>
                 {/* 공개 페이지 (라우트 가드 불필요) */}
                 <Route path="/" element={<LandingPage />} />
@@ -44,7 +44,6 @@ const UserRoutes = () => {
                 <Route path="/not-found" element={<NotFoundPage />} />
                 <Route path="*" element={<Navigate to="/not-found" />} />
             </Routes>
-        </BrowserRouter>
     );
 };
 
