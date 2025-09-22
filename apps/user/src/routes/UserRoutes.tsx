@@ -15,6 +15,7 @@ import FridgeListPage from '../pages/refrigerator/FridgeListPage.tsx';
 import FridgeDetailPage from '../pages/refrigerator/FridgeDetailPage.tsx';
 import CompartmentDetailPage from '../pages/refrigerator/CompartmentDetailPage.tsx';
 import NotFoundPage from '../pages/error/NotFoundPage.tsx';
+import FindPasswordPage from "../pages/auth/FindPasswordPage.tsx";
 
 const UserRoutes = () => {
     return (
@@ -24,6 +25,7 @@ const UserRoutes = () => {
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/auth/login" element={<LoginPage />} />
                 <Route path="/auth/signup" element={<SignupPage />} />
+                <Route path="/auth/find-password" element={<FindPasswordPage />} />
 
                 {/* 사용자 전용 페이지 (UserRouteGuard 필요) */}
                 <Route element={<UserRouteGuard />}>

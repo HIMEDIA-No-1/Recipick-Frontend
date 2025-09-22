@@ -1,88 +1,324 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
 
-const LoginPage: React.FC = () => {
-    const handleSocialLogin = (provider: 'google' | 'kakao' | 'naver') => {
-        // OAuth2 login process
-        console.log(`Attempting to login with ${provider}`);
-        // window.location.href = `/api/auth/oauth2/${provider}`;
+interface FormData {
+    nickname: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+}
+
+interface ValidationErrors {
+    nickname?: string;
+    email?: string;
+    password?: string;
+    confirmPassword?: string;
+}
+
+const SignupPage = () => {
+    const [formData, setFormData] = useState<FormData>({
+        nickname: '',
+        email: '',
+        password: '',
+        confirmPassword: ''
+    });
+    const [errors, setErrors] = useState<ValidationErrors>({});
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [loading, setLoading] = useState(false);
+
+    // 유효성 검사 함수들
+    const validateNickname = (nickname: string): string | null => {
+        if (!nickname.trim()) return '닉네임을 입력해주세요';
+        if (nickname.length < 2) return '닉네임은 2글자 이상이어야 합니다';
+        if (nickname.length > 20) return '닉네임은 20글자 이하여야 합니다';
+        if (!/^[가-힣a-zA-Z0-9]+$/.test(nickname)) return '닉네임은 한글, 영문, 숫자만 사용 가능합니다';
+
+        // Mock 중복 체크
+        const duplicateNicknames = ['admin', 'test', 'user1'];
+        if (duplicateNicknames.includes(nickname)) return '이미 사용 중인 닉네임입니다';
+
+        return null;
+    };
+
+    const validateEmail = (email: string): string | null => {
+        if (!email.trim()) return '이메일을 입력해주세요';
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) return '올바른 이메일 형식이 아닙니다';
+
+        // Mock 중복 체크
+        const duplicateEmails = ['admin@test.com', 'test@test.com'];
+        if (duplicateEmails.includes(email)) return '이미 사용 중인 이메일입니다';
+
+        return null;
+    };
+
+    const validatePassword = (password: string): string | null => {
+        if (!password) return '비밀번호를 입력해주세요';
+        if (password.length < 8) return '비밀번호는 8자리 이상이어야 합니다';
+        if (password.length > 50) return '비밀번호는 50자리 이하여야 합니다';
+        if (!/(?=.*[a-zA-Z])(?=.*\d)/.test(password)) return '비밀번호는 영문과 숫자를 포함해야 합니다';
+        if (!/(?=.*[!@#$%^&*(),.?":{}|<>])/.test(password)) return '비밀번호는 특수문자를 포함해야 합니다';
+        return null;
+    };
+
+    const validateConfirmPassword = (confirmPassword: string, password: string): string | null => {
+        if (!confirmPassword) return '비밀번호 확인을 입력해주세요';
+        if (confirmPassword !== password) return '비밀번호가 일치하지 않습니다';
+        return null;
+    };
+
+    // 실시간 유효성 검사
+    const handleInputChange = (field: keyof FormData, value: string) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+
+        // 실시간 유효성 검사
+        let error: string | null = null;
+        switch (field) {
+            case 'nickname':
+                error = validateNickname(value);
+                break;
+            case 'email':
+                error = validateEmail(value);
+                break;
+            case 'password':
+                error = validatePassword(value);
+                // 비밀번호 변경 시 확인 비밀번호도 재검증
+                if (formData.confirmPassword) {
+                    const confirmError = validateConfirmPassword(formData.confirmPassword, value);
+                    setErrors(prev => ({ ...prev, confirmPassword: confirmError }));
+                }
+                break;
+            case 'confirmPassword':
+                error = validateConfirmPassword(value, formData.password);
+                break;
+        }
+
+        setErrors(prev => ({ ...prev, [field]: error }));
+    };
+
+    const handleSubmit = async () => {
+
+        // 전체 유효성 검사
+        const newErrors: ValidationErrors = {
+            nickname: validateNickname(formData.nickname),
+            email: validateEmail(formData.email),
+            password: validatePassword(formData.password),
+            confirmPassword: validateConfirmPassword(formData.confirmPassword, formData.password)
+        };
+
+        setErrors(newErrors);
+
+        // 오류가 있으면 제출하지 않음
+        if (Object.values(newErrors).some(error => error !== null)) {
+            return;
+        }
+
+        setLoading(true);
+
+        // Mock API 호출
+        try {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            console.log('회원가입 성공:', formData);
+            alert('회원가입이 완료되었습니다!');
+        } catch (error) {
+            alert('회원가입 중 오류가 발생했습니다.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleLoginClick = () => {
+        console.log('Navigate to login page');
+    };
+
+    const handleFindPasswordClick = () => {
+        console.log('Navigate to find password page');
+    };
+
+    const getInputClassName = (field: keyof FormData) => {
+        const hasError = errors[field];
+        const hasValue = formData[field];
+
+        return `w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+            hasError
+                ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                : hasValue && !hasError
+                    ? 'border-green-300 focus:ring-green-500 focus:border-green-500'
+                    : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'
+        }`;
+    };
+
+    const getValidationIcon = (field: keyof FormData) => {
+        if (!formData[field]) return null;
+        return errors[field] ? (
+            <XCircle className="w-5 h-5 text-red-500" />
+        ) : (
+            <CheckCircle className="w-5 h-5 text-green-500" />
+        );
     };
 
     return (
-        <div className="min-h-screen bg-[#FAF7F2] flex flex-col justify-center items-center p-4 font-sans">
-            <script src="https://cdn.tailwindcss.com"></script>
-            <link rel="preconnect" href="https://fonts.googleapis.com" />
-            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-            {/* Background decorations for a more dynamic look */}
-            <div className="fixed inset-0 -z-10 overflow-hidden opacity-30">
-                <div className="absolute -top-40 -right-40 w-80 h-80 bg-[#A89F94] rounded-full"></div>
-                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-[#E0EBF7] rounded-full"></div>
+        <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex flex-col justify-center items-center p-4">
+            {/* 로고 섹션 */}
+            <div className="text-center mb-8">
+                <h1 className="text-4xl font-bold text-emerald-600 mb-2">Recipick</h1>
+                <p className="text-gray-600">새로운 계정을 만들어보세요</p>
             </div>
 
-            {/* Main content container */}
-            <div className="max-w-md w-full text-center">
-                {/* Logo section */}
-                <div className="mb-12">
-                    <h1 className="text-5xl font-bold text-[#4B4B4B] mb-2">Recipick</h1>
-                    <p className="text-[#878787] text-lg mb-1">냉장고 속 재료로 맛있는 레시피를</p>
-                    <p className="text-[#6789A5] text-xl font-semibold">3초만에 시작해보세요</p>
+            {/* 회원가입 카드 */}
+            <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+                <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">회원가입</h2>
+
+                <div className="space-y-4">
+                    {/* 닉네임 */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            닉네임
+                        </label>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                value={formData.nickname}
+                                onChange={(e) => handleInputChange('nickname', e.target.value)}
+                                placeholder="닉네임을 입력하세요"
+                                className={getInputClassName('nickname')}
+                                maxLength={20}
+                            />
+                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                {getValidationIcon('nickname')}
+                            </div>
+                        </div>
+                        {errors.nickname && (
+                            <p className="text-red-500 text-xs mt-1">{errors.nickname}</p>
+                        )}
+                    </div>
+
+                    {/* 이메일 */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            이메일
+                        </label>
+                        <div className="relative">
+                            <input
+                                type="email"
+                                value={formData.email}
+                                onChange={(e) => handleInputChange('email', e.target.value)}
+                                placeholder="이메일을 입력하세요"
+                                className={getInputClassName('email')}
+                            />
+                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                {getValidationIcon('email')}
+                            </div>
+                        </div>
+                        {errors.email && (
+                            <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+                        )}
+                    </div>
+
+                    {/* 비밀번호 */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            비밀번호
+                        </label>
+                        <div className="relative">
+                            <input
+                                type={showPassword ? 'text' : 'password'}
+                                value={formData.password}
+                                onChange={(e) => handleInputChange('password', e.target.value)}
+                                placeholder="비밀번호를 입력하세요"
+                                className={getInputClassName('password')}
+                            />
+                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex gap-2">
+                                {getValidationIcon('password')}
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="text-gray-400 hover:text-gray-600"
+                                >
+                                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                </button>
+                            </div>
+                        </div>
+                        {errors.password && (
+                            <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+                        )}
+                        <p className="text-xs text-gray-500 mt-1">
+                            8자 이상, 영문/숫자/특수문자 포함
+                        </p>
+                    </div>
+
+                    {/* 비밀번호 확인 */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            비밀번호 확인
+                        </label>
+                        <div className="relative">
+                            <input
+                                type={showConfirmPassword ? 'text' : 'password'}
+                                value={formData.confirmPassword}
+                                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                                placeholder="비밀번호를 다시 입력하세요"
+                                className={getInputClassName('confirmPassword')}
+                            />
+                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex gap-2">
+                                {getValidationIcon('confirmPassword')}
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    className="text-gray-400 hover:text-gray-600"
+                                >
+                                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                </button>
+                            </div>
+                        </div>
+                        {errors.confirmPassword && (
+                            <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>
+                        )}
+                    </div>
+
+                    {/* 회원가입 버튼 */}
+                    <button
+                        type="button"
+                        onClick={handleSubmit}
+                        disabled={loading || Object.values(errors).some(error => error !== null)}
+                        className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors mt-6"
+                    >
+                        {loading ? '가입 중...' : '회원가입'}
+                    </button>
                 </div>
 
-                {/* Login card */}
-                <div className="bg-[#FAF7F2] rounded-2xl shadow-xl p-8 w-full max-w-md border border-[#F0EEEB]">
-                    <div className="text-center mb-8">
-                        <h2 className="text-2xl font-bold text-[#4B4B4B] mb-2">시작하기</h2>
-                        <p className="text-[#A8A8A8]">소셜 계정으로 간편하게 로그인하세요</p>
-                    </div>
-
-                    <div className="space-y-4">
-                        {/* Google Login Button */}
+                {/* 하단 링크 */}
+                <div className="mt-6 text-center space-y-2">
+                    <div className="flex items-center justify-center gap-4 text-sm">
                         <button
-                            onClick={() => handleSocialLogin('google')}
-                            className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-white hover:bg-[#F0EEEB] text-[#7A7E7B] font-semibold rounded-xl transition-colors shadow-md transform active:scale-95 border border-[#D1D1D1]"
+                            onClick={handleLoginClick}
+                            className="text-emerald-600 hover:text-emerald-800 font-medium"
                         >
-                            <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
-                                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                            </svg>
-                            <span>Google로 계속하기</span>
+                            로그인
                         </button>
-
-                        {/* Kakao Login Button */}
+                        <span className="text-gray-300">|</span>
                         <button
-                            onClick={() => handleSocialLogin('kakao')}
-                            className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-yellow-400 hover:bg-yellow-500 text-gray-800 font-semibold rounded-xl transition-colors shadow-md transform active:scale-95"
+                            onClick={handleFindPasswordClick}
+                            className="text-gray-600 hover:text-gray-800"
                         >
-                            <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
-                                <path fill="#3C1E1E" d="M12 3C6.48 3 2 6.41 2 10.58c0 2.66 1.74 4.99 4.37 6.33l-.84 3.07c-.09.34.34.6.65.39l3.64-2.43c.72.07 1.46.11 2.18.11 5.52 0 10-3.41 10-7.58S17.52 3 12 3z"/>
-                            </svg>
-                            <span>카카오로 계속하기</span>
-                        </button>
-
-                        {/* Naver Login Button */}
-                        <button
-                            onClick={() => handleSocialLogin('naver')}
-                            className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl transition-colors shadow-md transform active:scale-95"
-                        >
-                            <svg className="w-5 h-5 mr-3 fill-white" viewBox="0 0 24 24">
-                                <path d="M16.273 12.845 7.376 0H0v24h7.726V11.156L16.624 24H24V0h-7.727v12.845z"/>
-                            </svg>
-                            <span>네이버로 계속하기</span>
+                            비밀번호 찾기
                         </button>
                     </div>
 
-                    <div className="mt-8 text-center text-sm text-[#A8A8A8]">
-                        <p>계속 진행하면 <span className="text-[#6789A5] hover:text-[#53738F] font-semibold transition-colors cursor-pointer">이용약관</span> 및 <span className="text-[#6789A5] hover:text-[#53738F] font-semibold transition-colors cursor-pointer">개인정보처리방침</span>에</p>
-                        <p>동의하는 것으로 간주됩니다.</p>
+                    <div className="text-xs text-gray-500 mt-4">
+                        <p>가입을 진행하면 <span className="text-emerald-500">이용약관</span> 및</p>
+                        <p><span className="text-emerald-500">개인정보처리방침</span>에 동의하는 것으로 간주됩니다.</p>
                     </div>
                 </div>
+            </div>
+
+            {/* 푸터 */}
+            <div className="mt-8 text-center text-gray-400">
+                <p>© 2024 Recipick. All rights reserved.</p>
             </div>
         </div>
     );
 };
 
-export default LoginPage;
+export default SignupPage;
