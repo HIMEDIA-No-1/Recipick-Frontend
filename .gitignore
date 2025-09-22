@@ -26,5 +26,3 @@ dist-ssr
 *.sw?
 
 .claude
-
-pnpm-lock.yaml
