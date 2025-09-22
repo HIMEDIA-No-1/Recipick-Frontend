@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import UserRouteGuard from './UserRouteGuard';
 
 // 페이지 컴포넌트 불러오기

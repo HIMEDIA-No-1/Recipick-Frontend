@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Search, Bell, Clock, Users, AlertTriangle, ArrowLeft } from 'lucide-react';
 
 interface Notification {
@@ -26,11 +26,11 @@ const NotificationPage = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(0);
-    const [hasMore, setHasMore] = useState(true);
+    const [hasMore] = useState(true);
 
     // 커스텀 debounce 함수
     const debounce = useCallback((func: Function, delay: number) => {
-        let timeoutId: NodeJS.Timeout;
+        let timeoutId: number;
         return (...args: any[]) => {
             clearTimeout(timeoutId);
             timeoutId = setTimeout(() => func(...args), delay);

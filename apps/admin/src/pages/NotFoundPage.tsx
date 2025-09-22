@@ -24,7 +24,8 @@ const NotFoundPage: React.FC = () => {
     }
   }, []);
 
-  return (
+  // @ts-ignore
+    return (
     <div className="min-h-screen bg-[#FAF7F2] dark:bg-[#242424] flex flex-col justify-center items-center p-4">
       {/* Dark Mode Toggle */}
       <button
@@ -131,7 +132,7 @@ const NotFoundPage: React.FC = () => {
       </div>
 
       {/* Custom styles for better dark mode support */}
-      <style jsx>{`
+      <style>{`
         .dark .text-[#4B4B4B] { color: #E0E0E0; }
         .dark .text-[#878787] { color: #A0A0A0; }
         .dark .bg-[#FAF7F2] { background-color: #242424; }
