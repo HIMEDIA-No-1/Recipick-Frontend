@@ -4,12 +4,13 @@ import {
     User as UserIcon,
     Bell,
     Menu,
-    Sun,
-    Moon,
     Utensils,
-    Refrigerator
-} from 'lucide-react';
+    Refrigerator,
+    Heart,
+    BarChart,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import recipickLogo from "../../../assets/logo_full_m.png"; // footer와 같은 경로
 
 interface User {
     name: string;
@@ -18,39 +19,49 @@ interface User {
 const Header: React.FC = () => {
     const [user, setUser] = useState<User | null>({ name: "사용자 이름" });
     const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
-    const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+    const [isNotificationOpen, setIsNotificationOpen] = useState<boolean>(false);
     const navigate = useNavigate();
 
     const handleLogout = () => {
         console.log("Logging out...");
         setUser(null);
         setIsMenuOpen(false);
-        navigate("/auth/login"); // 로그아웃 후 로그인 페이지로 이동
-    };
-
-    const toggleDarkMode = () => {
-        setIsDarkMode(!isDarkMode);
-        document.body.classList.toggle("dark", !isDarkMode);
+        navigate("/auth/login");
     };
 
     useEffect(() => {
         const handleOutsideClick = (event: MouseEvent) => {
             const target = event.target as HTMLElement;
-            if (isMenuOpen && !target.closest(".menu-container")) {
+            if (
+                isMenuOpen &&
+                !target.closest(".menu-container") &&
+                !target.closest(".menu-button")
+            ) {
                 setIsMenuOpen(false);
+            }
+            if (
+                isNotificationOpen &&
+                !target.closest(".notification-container") &&
+                !target.closest(".notification-button")
+            ) {
+                setIsNotificationOpen(false);
             }
         };
         window.addEventListener("click", handleOutsideClick);
         return () => window.removeEventListener("click", handleOutsideClick);
-    }, [isMenuOpen]);
+    }, [isMenuOpen, isNotificationOpen]);
 
     return (
-        <header className="fixed top-0 left-0 w-full z-40 bg-[#FAF7F2] shadow-sm h-20">
+        <header className="fixed top-0 left-0 w-full z-40 bg-[#FAF7F2] shadow-md h-20">
             <div className="flex items-center justify-between h-20 w-full px-4 sm:px-10">
                 {/* 로고 + 메뉴 */}
                 <div className="flex items-center space-x-6">
                     <button onClick={() => navigate("/")} className="flex items-center">
-                        <h1 className="text-3xl font-bold text-[#6789A5]">Recipick</h1>
+                        <img
+                            src={recipickLogo}
+                            alt="Recipick Logo"
+                            className="h-10 sm:h-12"
+                        />
                     </button>
                     <nav className="hidden md:flex items-center space-x-4 sm:space-x-6">
                         <button
@@ -70,37 +81,72 @@ const Header: React.FC = () => {
                     </nav>
                 </div>
 
-                {/* 오른쪽 아이콘들 */}
-                <div className="flex items-center space-x-4">
-                    {/* 다크모드 버튼 */}
-                    <button
-                        onClick={toggleDarkMode}
-                        className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-[#E0EBF7] transition-colors focus:outline-none"
-                        title={isDarkMode ? "라이트 모드" : "다크 모드"}
-                    >
-                        {isDarkMode ? (
-                            <Sun className="text-[#878787]" />
-                        ) : (
-                            <Moon className="text-[#878787]" />
-                        )}
-                    </button>
-
+                {/* 오른쪽 아이콘 */}
+                <div className="flex items-center space-x-2">
                     {/* 알림 버튼 */}
-                    <button
-                        className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-[#E0EBF7] transition-colors focus:outline-none relative"
-                        title="알림"
-                        onClick={() => navigate("/notifications")}
-                    >
-                        <Bell className="text-[#878787]" />
-                        <span className="absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
-                            3
-                        </span>
-                    </button>
+                    <div className="relative notification-container">
+                        <button
+                            className="notification-button flex items-center justify-center w-10 h-10 rounded-full hover:bg-[#E0EBF7] transition-colors focus:outline-none relative"
+                            title="알림"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsNotificationOpen(!isNotificationOpen);
+                            }}
+                        >
+                            <Bell className="text-[#878787]" />
+                            <span className="absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                                3
+                            </span>
+                        </button>
 
-                    {/* 메뉴 드롭다운 */}
+                        {/* 알림 드롭다운 */}
+                        <div
+                            className={`absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-lg z-50 border border-[#D1D1D1] transition-all duration-300 ease-in-out ${
+                                isNotificationOpen
+                                    ? "opacity-100 visible scale-100"
+                                    : "opacity-0 invisible scale-95"
+                            }`}
+                        >
+                            <div className="p-3 space-y-3 text-sm text-[#4B4B4B]">
+                                {/* 공유 신청/승낙 알림 */}
+                                <div className="p-2 border-b border-[#F0EEEB]">
+                                    <p className="font-semibold">냉장고 공유 요청</p>
+                                    <div className="flex gap-2 mt-1">
+                                        <button className="px-3 py-1 bg-green-500 text-white text-xs rounded-lg hover:bg-green-600">
+                                            승인
+                                        </button>
+                                        <button className="px-3 py-1 bg-red-500 text-white text-xs rounded-lg hover:bg-red-600">
+                                            거부
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* 소비기한 알림 */}
+                                <div className="p-2 border-b border-[#F0EEEB]">
+                                    <p className="font-semibold">소비기한 임박</p>
+                                    <p className="text-xs text-[#7A7E7B]">
+                                        우유가 곧 만료됩니다.
+                                    </p>
+                                </div>
+
+                                {/* 모든 알림 보기 */}
+                                <button
+                                    onClick={() => {
+                                        setIsNotificationOpen(false);
+                                        navigate("/notifications");
+                                    }}
+                                    className="w-full text-center text-[#6789A5] font-semibold hover:underline mt-2"
+                                >
+                                    모든 알림 보기
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 마이페이지 메뉴 */}
                     <div className="relative menu-container">
                         <button
-                            className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-[#E0EBF7] transition-colors focus:outline-none"
+                            className="menu-button flex items-center justify-center w-10 h-10 rounded-full hover:bg-[#E0EBF7] transition-colors focus:outline-none"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setIsMenuOpen(!isMenuOpen);
@@ -110,7 +156,7 @@ const Header: React.FC = () => {
                         </button>
 
                         <div
-                            className={`absolute top-full right-0 mt-2 w-48 bg-white rounded-xl shadow-lg z-50 border border-[#D1D1D1] transition-all duration-300 ease-in-out ${
+                            className={`absolute top-full right-0 mt-2 w-56 bg-white rounded-xl shadow-lg z-50 border border-[#D1D1D1] transition-all duration-300 ease-in-out ${
                                 isMenuOpen
                                     ? "opacity-100 visible scale-100"
                                     : "opacity-0 invisible scale-95"
@@ -131,6 +177,24 @@ const Header: React.FC = () => {
                                         >
                                             <UserIcon className="w-4 h-4" />
                                             내 정보 수정
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                navigate("/mypage/recipe");
+                                                setIsMenuOpen(false);
+                                            }}
+                                            className="w-full text-left px-4 py-2 text-sm text-[#7A7E7B] hover:bg-[#F0EEEB] rounded-lg transition-colors flex items-center gap-2"
+                                        >
+                                            <Heart className="w-4 h-4" /> 내가 찜한 레시피
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                navigate("/mypage/statistics");
+                                                setIsMenuOpen(false);
+                                            }}
+                                            className="w-full text-left px-4 py-2 text-sm text-[#7A7E7B] hover:bg-[#F0EEEB] rounded-lg transition-colors flex items-center gap-2"
+                                        >
+                                            <BarChart className="w-4 h-4" /> 내 분석·통계
                                         </button>
                                         <button
                                             onClick={handleLogout}
