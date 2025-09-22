@@ -4,44 +4,38 @@ import {
     User as UserIcon,
     Bell,
     Menu,
-    Utensils,
     Refrigerator,
     Heart,
     BarChart,
+    ChefHat,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import recipickLogo from "../../../assets/logo_full_m.png";
-
-// 로컬 스토리지에서 초기 사용자 상태를 가져오는 함수
-const getInitialUserState = () => {
-    try {
-        const storedState = localStorage.getItem("user_state");
-        if (storedState) {
-            const userState = JSON.parse(storedState);
-            if (userState.isAuthenticated) {
-                // 저장된 닉네임과 사용자 ID를 반환
-                return {
-                    nickname: userState.nickname,
-                    userId: userState.userId,
-                };
-            }
-        }
-    } catch (e) {
-        console.error("Failed to parse user state from localStorage", e);
-    }
-    return null;
-};
+import { StorageUtil, type UserState, type NotificationsData } from "../../utils/localStorage";
 
 const Header: React.FC = () => {
-    // 초기 상태를 로컬 스토리지에서 가져오도록 설정
-    const [user, setUser] = useState<{ nickname: string; userId: string } | null>(getInitialUserState);
+    const [user, setUser] = useState<UserState | null>(null);
     const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
     const [isNotificationOpen, setIsNotificationOpen] = useState<boolean>(false);
+    const [notifications, setNotifications] = useState<NotificationsData>({ allNotifications: [] });
     const navigate = useNavigate();
 
+    // 컴포넌트 마운트 시 로컬 스토리지에서 데이터 로드
+    useEffect(() => {
+        const userState = StorageUtil.getUserState();
+        if (userState?.isAuthenticated) {
+            setUser(userState);
+        }
+
+        const notificationData = StorageUtil.getNotificationsData();
+        if (notificationData) {
+            setNotifications(notificationData);
+        }
+    }, []);
+
     const handleLogout = () => {
-        // 로컬 스토리지에서 사용자 정보 삭제
-        localStorage.removeItem("user_state");
+        // 명세서에 따라 모든 데이터 삭제
+        StorageUtil.clearAll();
         setUser(null);
         setIsMenuOpen(false);
         navigate("/auth/login");
@@ -76,7 +70,6 @@ const Header: React.FC = () => {
                 <div className="flex items-center space-x-6">
                     <button onClick={() => navigate("/")} className="flex items-center">
                         <img
-                            // 로컬 이미지 대신 임시 플레이스홀더 URL을 사용합니다.
                             src={recipickLogo}
                             alt="Recipick Logo"
                             className="h-10 sm:h-12"
@@ -94,7 +87,7 @@ const Header: React.FC = () => {
                             onClick={() => navigate("/recipes")}
                             className="text-[#7A7E7B] hover:text-[#6789A5] font-semibold transition-colors flex items-center gap-1"
                         >
-                            <Utensils className="w-5 h-5" />
+                            <ChefHat className="w-5 h-5" />
                             레시피
                         </button>
                     </nav>
@@ -113,9 +106,11 @@ const Header: React.FC = () => {
                             }}
                         >
                             <Bell className="text-[#878787]" />
-                            <span className="absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
-                                3
-                            </span>
+                            {notifications.allNotifications.filter(n => !n.isRead).length > 0 && (
+                                <span className="absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                                    {notifications.allNotifications.filter(n => !n.isRead).length}
+                                </span>
+                            )}
                         </button>
 
                         {/* 알림 드롭다운 */}
@@ -127,37 +122,36 @@ const Header: React.FC = () => {
                             }`}
                         >
                             <div className="p-3 space-y-3 text-sm text-[#4B4B4B]">
-                                {/* 공유 신청/승낙 알림 */}
-                                <div className="p-2 border-b border-[#F0EEEB]">
-                                    <p className="font-semibold">냉장고 공유 요청</p>
-                                    <div className="flex gap-2 mt-1">
-                                        <button className="px-3 py-1 bg-green-500 text-white text-xs rounded-lg hover:bg-green-600">
-                                            승인
-                                        </button>
-                                        <button className="px-3 py-1 bg-red-500 text-white text-xs rounded-lg hover:bg-red-600">
-                                            거부
-                                        </button>
+                                {notifications.allNotifications.length === 0 ? (
+                                    <div className="p-2 text-center text-[#7A7E7B]">
+                                        알림이 없습니다.
                                     </div>
-                                </div>
+                                ) : (
+                                    <>
+                                        {notifications.allNotifications.slice(0, 3).map((notification) => (
+                                            <div key={notification.notificationId} className={`p-2 border-b border-[#F0EEEB] ${!notification.isRead ? 'bg-blue-50' : ''}`}>
+                                                <p className="font-semibold">{notification.type === 'INVITE_FRIDGE' ? '냉장고 초대' : '메시지'}</p>
+                                                <p className="text-xs text-[#7A7E7B]">
+                                                    {notification.message}
+                                                </p>
+                                                <p className="text-xs text-[#878787] mt-1">
+                                                    {new Date(notification.createdAt).toLocaleDateString()}
+                                                </p>
+                                            </div>
+                                        ))}
 
-                                {/* 소비기한 알림 */}
-                                <div className="p-2 border-b border-[#F0EEEB]">
-                                    <p className="font-semibold">소비기한 임박</p>
-                                    <p className="text-xs text-[#7A7E7B]">
-                                        우유가 곧 만료됩니다.
-                                    </p>
-                                </div>
-
-                                {/* 모든 알림 보기 */}
-                                <button
-                                    onClick={() => {
-                                        setIsNotificationOpen(false);
-                                        navigate("/notifications");
-                                    }}
-                                    className="w-full text-center text-[#6789A5] font-semibold hover:underline mt-2"
-                                >
-                                    모든 알림 보기
-                                </button>
+                                        {/* 모든 알림 보기 */}
+                                        <button
+                                            onClick={() => {
+                                                setIsNotificationOpen(false);
+                                                navigate("/notifications");
+                                            }}
+                                            className="w-full text-center text-[#6789A5] font-semibold hover:underline mt-2"
+                                        >
+                                            모든 알림 보기
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>

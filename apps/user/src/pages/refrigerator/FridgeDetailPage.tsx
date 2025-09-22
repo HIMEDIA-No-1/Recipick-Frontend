@@ -1,40 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, Users, Settings, StickyNote, Thermometer, Snowflake, Home } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { StorageUtil, type Fridge, type Compartment } from '../../utils/localStorage';
 
-// Tailwind CSS 및 Inter 폰트를 로드하기 위한 스크립트
-const TW_SCRIPT = `
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-    }
-  </style>
-`;
-
-// 보관칸 타입 인터페이스
-interface Compartment {
-    id: number;
-    name: string;
-    type: 'FROZEN' | 'REFRIGERATED' | 'ROOM_TEMP';
-    ingredientCount: number;
-    createdAt: string;
-}
-
-// 냉장고 상세 정보 인터페이스
-interface FridgeDetail {
-    id: number;
-    name: string;
-    isDefault: boolean;
-    isFavorite: boolean;
-    ownerId: number;
-    memberCount: number;
-    ingredientCount: number;
-    memo: string;
-    compartments: Compartment[];
-}
 
 // window.alert를 대체하는 커스텀 모달 컴포넌트
 const CustomModal: React.FC<{ message: string; onClose: () => void }> = ({ message, onClose }) => {
@@ -55,93 +23,82 @@ const CustomModal: React.FC<{ message: string; onClose: () => void }> = ({ messa
 };
 
 const FridgeDetailPage = () => {
-    const [fridge, setFridge] = useState<FridgeDetail | null>(null);
+    const navigate = useNavigate();
+    const { fridgeId } = useParams<{ fridgeId: string }>();
+    const [fridge, setFridge] = useState<Fridge | null>(null);
     const [loading, setLoading] = useState(true);
     const [showMemoModal, setShowMemoModal] = useState(false);
     const [showAddCompartmentModal, setShowAddCompartmentModal] = useState(false);
     const [memoText, setMemoText] = useState('');
     const [newCompartmentName, setNewCompartmentName] = useState('');
-    const [newCompartmentType, setNewCompartmentType] = useState<'FROZEN' | 'REFRIGERATED' | 'ROOM_TEMP'>('REFRIGERATED');
+    const [newCompartmentType, setNewCompartmentType] = useState<'COOL' | 'FREEZE' | 'PANTRY'>('COOL');
     const [showAlert, setShowAlert] = useState(false);
     const [alertMessage, setAlertMessage] = useState('');
 
     // 보관칸 타입 정보 (아이콘 색상 포함)
     const compartmentTypes = [
-        { key: 'FROZEN' as const, label: '냉동', icon: Snowflake, color: 'bg-[#6789A5]' },
-        { key: 'REFRIGERATED' as const, label: '냉장', icon: Thermometer, color: 'bg-green-500' },
-        { key: 'ROOM_TEMP' as const, label: '실온', icon: Home, color: 'bg-yellow-500' }
+        { key: 'FREEZE' as const, label: '냉동', icon: Snowflake, color: 'bg-[#6789A5]' },
+        { key: 'COOL' as const, label: '냉장', icon: Thermometer, color: 'bg-green-500' },
+        { key: 'PANTRY' as const, label: '실온', icon: Home, color: 'bg-yellow-500' }
     ];
 
     useEffect(() => {
-        // 컴포넌트 마운트 시 Tailwind CSS 및 폰트 스크립트 삽입
-        const script = document.createElement('div');
-        script.innerHTML = TW_SCRIPT;
-        document.head.appendChild(script);
-
         loadFridgeDetail();
-
-        return () => {
-            // 컴포넌트 언마운트 시 스크립트 제거
-            document.head.removeChild(script);
-        };
-    }, []);
+    }, [fridgeId]);
 
     const loadFridgeDetail = () => {
-        // Mock 데이터 로드
-        const mockFridge: FridgeDetail = {
-            id: 1,
-            name: '우리집 냉장고',
-            isDefault: true,
-            isFavorite: true,
-            ownerId: 1,
-            memberCount: 2,
-            ingredientCount: 15,
-            memo: '우유 떨어지면 구매하기\n계란 유통기한 체크',
-            compartments: [
-                {
-                    id: 1,
-                    name: '야채칸',
-                    type: 'REFRIGERATED',
-                    ingredientCount: 8,
-                    createdAt: '2024-01-15T10:30:00Z'
-                },
-                {
-                    id: 2,
-                    name: '냉동실',
-                    type: 'FROZEN',
-                    ingredientCount: 5,
-                    createdAt: '2024-01-15T10:35:00Z'
-                },
-                {
-                    id: 3,
-                    name: '상온 보관함',
-                    type: 'ROOM_TEMP',
-                    ingredientCount: 2,
-                    createdAt: '2024-01-15T10:40:00Z'
-                }
-            ]
-        };
+        if (!fridgeId) {
+            navigate('/fridges');
+            return;
+        }
 
-        setTimeout(() => {
-            setFridge(mockFridge);
-            setMemoText(mockFridge.memo);
-            setLoading(false);
-        }, 500);
+        const fridgesData = StorageUtil.getFridgesData();
+        if (!fridgesData) {
+            navigate('/fridges');
+            return;
+        }
+
+        const targetFridge = fridgesData.allFridges.find(f => f.fridgeId === fridgeId);
+        if (!targetFridge) {
+            navigate('/fridges');
+            return;
+        }
+
+        setFridge(targetFridge);
+        setMemoText(targetFridge.memo);
+        setLoading(false);
     };
 
     const handleBack = () => {
-        console.log('냉장고 목록으로 돌아가기');
+        navigate('/fridges');
     };
 
-    const handleCompartmentClick = (compartmentId: number) => {
-        console.log('보관칸 상세 보기:', compartmentId);
+    const handleCompartmentClick = (compartmentId: string) => {
+        navigate(`/fridges/${fridge?.fridgeId}/compartments/${compartmentId}`);
     };
 
     const handleMemoSave = () => {
-        if (fridge) {
-            setFridge({ ...fridge, memo: memoText });
-            setShowMemoModal(false);
-        }
+        if (!fridge) return;
+
+        const fridgesData = StorageUtil.getFridgesData();
+        if (!fridgesData) return;
+
+        // 냉장고 데이터 업데이트
+        const updatedFridges = fridgesData.allFridges.map(f =>
+            f.fridgeId === fridge.fridgeId
+                ? { ...f, memo: memoText }
+                : f
+        );
+
+        // localStorage에 저장
+        StorageUtil.saveFridgesData({
+            ...fridgesData,
+            allFridges: updatedFridges
+        });
+
+        // 상태 업데이트
+        setFridge({ ...fridge, memo: memoText });
+        setShowMemoModal(false);
     };
 
     const handleAddCompartment = () => {
@@ -151,24 +108,39 @@ const FridgeDetailPage = () => {
             return;
         }
 
-        if (fridge) {
-            const newCompartment: Compartment = {
-                id: Date.now(),
-                name: newCompartmentName,
-                type: newCompartmentType,
-                ingredientCount: 0,
-                createdAt: new Date().toISOString()
-            };
+        if (!fridge) return;
 
-            setFridge({
-                ...fridge,
-                compartments: [...fridge.compartments, newCompartment]
-            });
+        const fridgesData = StorageUtil.getFridgesData();
+        if (!fridgesData) return;
 
-            setNewCompartmentName('');
-            setNewCompartmentType('REFRIGERATED');
-            setShowAddCompartmentModal(false);
-        }
+        const newCompartment: Compartment = {
+            compartmentId: `${fridge.fridgeId}-${Date.now()}`,
+            name: newCompartmentName,
+            type: newCompartmentType
+        };
+
+        // 냉장고 데이터 업데이트
+        const updatedFridges = fridgesData.allFridges.map(f =>
+            f.fridgeId === fridge.fridgeId
+                ? { ...f, compartments: [...f.compartments, newCompartment] }
+                : f
+        );
+
+        // localStorage에 저장
+        StorageUtil.saveFridgesData({
+            ...fridgesData,
+            allFridges: updatedFridges
+        });
+
+        // 상태 업데이트
+        setFridge({
+            ...fridge,
+            compartments: [...fridge.compartments, newCompartment]
+        });
+
+        setNewCompartmentName('');
+        setNewCompartmentType('COOL');
+        setShowAddCompartmentModal(false);
     };
 
     const handleShareFridge = () => {
@@ -193,6 +165,24 @@ const FridgeDetailPage = () => {
     const getTypeLabel = (type: string) => {
         const typeInfo = compartmentTypes.find(t => t.key === type);
         return typeInfo?.label || type;
+    };
+
+    const getIngredientCount = (compartmentId: string) => {
+        const ingredientsData = StorageUtil.getIngredientsData();
+        if (!ingredientsData) return 0;
+
+        return ingredientsData.allIngredients.filter(
+            ingredient => ingredient.compartmentId === compartmentId &&
+            ingredient.state !== 'CONSUMED' && ingredient.state !== 'DISPOSED'
+        ).length;
+    };
+
+    const getTotalIngredientCount = () => {
+        if (!fridge) return 0;
+
+        return fridge.compartments.reduce((total, compartment) => {
+            return total + getIngredientCount(compartment.compartmentId);
+        }, 0);
     };
 
     if (loading) {
@@ -272,7 +262,7 @@ const FridgeDetailPage = () => {
 
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
                         <div className="text-center p-4 bg-[#F0EEEB] rounded-lg">
-                            <p className="text-2xl font-bold text-[#4B4B4B]">{fridge.ingredientCount}</p>
+                            <p className="text-2xl font-bold text-[#4B4B4B]">{getTotalIngredientCount()}</p>
                             <p className="text-sm text-[#7A7E7B]">총 식재료</p>
                         </div>
                         <div className="text-center p-4 bg-[#F0EEEB] rounded-lg">
@@ -280,7 +270,7 @@ const FridgeDetailPage = () => {
                             <p className="text-sm text-[#7A7E7B]">보관칸</p>
                         </div>
                         <div className="text-center p-4 bg-[#F0EEEB] rounded-lg">
-                            <p className="text-2xl font-bold text-[#4B4B4B]">{fridge.memberCount}</p>
+                            <p className="text-2xl font-bold text-[#4B4B4B]">{fridge.members.length}</p>
                             <p className="text-sm text-[#7A7E7B]">멤버</p>
                         </div>
                     </div>
@@ -335,8 +325,8 @@ const FridgeDetailPage = () => {
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         {fridge.compartments.map((compartment) => (
                             <div
-                                key={compartment.id}
-                                onClick={() => handleCompartmentClick(compartment.id)}
+                                key={compartment.compartmentId}
+                                onClick={() => handleCompartmentClick(compartment.compartmentId)}
                                 className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md cursor-pointer transition-shadow"
                             >
                                 <div className="flex items-center justify-between mb-4">
@@ -352,13 +342,9 @@ const FridgeDetailPage = () => {
                                 </div>
 
                                 <div className="text-center p-4 bg-[#F0EEEB] rounded-lg mb-3">
-                                    <p className="text-2xl font-bold text-[#4B4B4B]">{compartment.ingredientCount}</p>
+                                    <p className="text-2xl font-bold text-[#4B4B4B]">{getIngredientCount(compartment.compartmentId)}</p>
                                     <p className="text-sm text-[#7A7E7B]">식재료</p>
                                 </div>
-
-                                <p className="text-xs text-[#878787] text-center">
-                                    {new Date(compartment.createdAt).toLocaleDateString('ko-KR')} 생성
-                                </p>
                             </div>
                         ))}
                     </div>
