@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { User, Camera, Edit2, Trash2, ArrowLeft, Check, X, Key, Eye, EyeOff } from 'lucide-react';
-import { createRoot } from 'react-dom/client';
 
 // NOTE: This is a single-file React component.
 // All styles are handled by Tailwind CSS, which is assumed to be available.
@@ -632,12 +631,4 @@ const MyProfileEditPage: React.FC = () => {
     );
 };
 
-// --- App Container ---
-// Renders the main component into the DOM.
-const App = () => {
-    return <MyProfileEditPage />;
-};
-
-const container = document.getElementById('root');
-const root = createRoot(container!);
-root.render(<App />);
+export default MyProfileEditPage;

@@ -10,20 +10,38 @@ import {
     BarChart,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import recipickLogo from "../../../assets/logo_full_m.png"; // footer와 같은 경로
+import recipickLogo from "../../../assets/logo_full_m.png";
 
-interface User {
-    name: string;
-}
+// 로컬 스토리지에서 초기 사용자 상태를 가져오는 함수
+const getInitialUserState = () => {
+    try {
+        const storedState = localStorage.getItem("user_state");
+        if (storedState) {
+            const userState = JSON.parse(storedState);
+            if (userState.isAuthenticated) {
+                // 저장된 닉네임과 사용자 ID를 반환
+                return {
+                    nickname: userState.nickname,
+                    userId: userState.userId,
+                };
+            }
+        }
+    } catch (e) {
+        console.error("Failed to parse user state from localStorage", e);
+    }
+    return null;
+};
 
 const Header: React.FC = () => {
-    const [user, setUser] = useState<User | null>({ name: "사용자 이름" });
+    // 초기 상태를 로컬 스토리지에서 가져오도록 설정
+    const [user, setUser] = useState<{ nickname: string; userId: string } | null>(getInitialUserState);
     const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
     const [isNotificationOpen, setIsNotificationOpen] = useState<boolean>(false);
     const navigate = useNavigate();
 
     const handleLogout = () => {
-        console.log("Logging out...");
+        // 로컬 스토리지에서 사용자 정보 삭제
+        localStorage.removeItem("user_state");
         setUser(null);
         setIsMenuOpen(false);
         navigate("/auth/login");
@@ -58,6 +76,7 @@ const Header: React.FC = () => {
                 <div className="flex items-center space-x-6">
                     <button onClick={() => navigate("/")} className="flex items-center">
                         <img
+                            // 로컬 이미지 대신 임시 플레이스홀더 URL을 사용합니다.
                             src={recipickLogo}
                             alt="Recipick Logo"
                             className="h-10 sm:h-12"
@@ -166,7 +185,7 @@ const Header: React.FC = () => {
                                 {user ? (
                                     <>
                                         <div className="px-4 py-2 text-sm text-[#6789A5] border-b border-[#F0EEEB] font-semibold">
-                                            {user.name}
+                                            {user.nickname}
                                         </div>
                                         <button
                                             onClick={() => {
