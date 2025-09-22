@@ -1,5 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { DragDropContext, Draggable, Droppable, type DropResult } from "react-beautiful-dnd";
+import {
+    DragDropContext,
+    Draggable,
+    Droppable,
+    type DropResult,
+    type DraggableProvided,
+    type DraggableStateSnapshot,
+    type DroppableProvided
+} from "react-beautiful-dnd";
 import FridgeObject from "./FridgeObject.tsx";
 import { AddFridge } from "./AddFridge.tsx";
 import { debounce } from "lodash-es";
@@ -163,7 +171,7 @@ const FridgeList: React.FC = () => {
 
             <DragDropContext onDragEnd={onDragEnd}>
                 <Droppable droppableId="fridge-list">
-                    {(provided) => (
+                    {(provided:DroppableProvided) => (
                         <div
                             ref={carouselRef}
                             className="draggable-fridge-container overflow-x-auto scrollbar-hide scroll-smooth"
@@ -179,7 +187,7 @@ const FridgeList: React.FC = () => {
                                             const overallIndex = groupIndex * 4 + indexInGroup;
                                             return (
                                                 <Draggable key={fridge.id} draggableId={fridge.id} index={overallIndex}>
-                                                    {(provided, snapshot) => (
+                                                    {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
                                                         <div
                                                             ref={provided.innerRef}
                                                             {...provided.draggableProps}
