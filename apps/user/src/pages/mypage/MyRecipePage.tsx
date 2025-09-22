@@ -1,443 +1,218 @@
-import { useState, useEffect } from 'react';
-import { Heart, Calendar, Star, ChefHat, ArrowLeft, Plus, Folder } from 'lucide-react';
+import { useEffect, useState } from "react";
+// 라우팅을 위한 useNavigate 훅 추가
 
+/* ---- 타입 정의 ---- */
 interface Recipe {
     id: number;
     title: string;
-    imageUrl: string;
-    rating: number;
-    difficulty: string;
-    cookingTime: number;
-    isFavorite: boolean;
+    description: string;
+    items: string[];
+    imageUrl?: string;
 }
 
-interface CookingHistory {
-    id: number;
-    recipeId: number;
-    recipeTitle: string;
-    recipeImageUrl: string;
-    cookedAt: string;
-    rating: number;
-    usedIngredients: Array<{ name: string; quantity: string }>;
+interface MealCardProps {
+    title: string;
+    description: string;
+    items?: string[];
+    imageUrl?: string;
 }
 
-interface RecipeFolder {
-    id: number;
-    name: string;
-    recipeCount: number;
-    createdAt: string;
-    recentRecipes: Recipe[];
-}
-
-const MyRecipePage = () => {
-    const [activeTab, setActiveTab] = useState<'folders' | 'history'>('folders');
-    const [folders, setFolders] = useState<RecipeFolder[]>([]);
-    const [cookingHistory, setCookingHistory] = useState<CookingHistory[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [showNewFolderModal, setShowNewFolderModal] = useState(false);
-    const [newFolderName, setNewFolderName] = useState('');
-
-    useEffect(() => {
-        loadData();
-    }, []);
-
-    const loadData = () => {
-        // Mock 데이터 로드
-        const mockFolders: RecipeFolder[] = [
-            {
-                id: 1,
-                name: '한식 레시피',
-                recipeCount: 5,
-                createdAt: '2024-01-15T10:30:00Z',
-                recentRecipes: [
-                    {
-                        id: 1,
-                        title: '김치볶음밥',
-                        imageUrl: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=300&h=200&fit=crop',
-                        rating: 4.5,
-                        difficulty: 'EASY',
-                        cookingTime: 15,
-                        isFavorite: true
-                    },
-                    {
-                        id: 2,
-                        title: '된장찌개',
-                        imageUrl: 'https://images.unsplash.com/photo-1559847844-d9c3ad5e4a3c?w=300&h=200&fit=crop',
-                        rating: 4.3,
-                        difficulty: 'MEDIUM',
-                        cookingTime: 25,
-                        isFavorite: true
-                    }
-                ]
-            },
-            {
-                id: 2,
-                name: '간단 요리',
-                recipeCount: 3,
-                createdAt: '2024-01-14T15:20:00Z',
-                recentRecipes: [
-                    {
-                        id: 3,
-                        title: '계란말이',
-                        imageUrl: 'https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=300&h=200&fit=crop',
-                        rating: 4.7,
-                        difficulty: 'EASY',
-                        cookingTime: 10,
-                        isFavorite: true
-                    }
-                ]
-            },
-            {
-                id: 3,
-                name: '디저트',
-                recipeCount: 0,
-                createdAt: '2024-01-13T09:15:00Z',
-                recentRecipes: []
-            }
-        ];
-
-        const mockHistory: CookingHistory[] = [
-            {
-                id: 1,
-                recipeId: 1,
-                recipeTitle: '김치볶음밥',
-                recipeImageUrl: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=300&h=200&fit=crop',
-                cookedAt: '2024-01-15T11:00:00Z',
-                rating: 5,
-                usedIngredients: [
-                    { name: '김치', quantity: '200g' },
-                    { name: '계란', quantity: '2개' }
-                ]
-            },
-            {
-                id: 2,
-                recipeId: 3,
-                recipeTitle: '계란말이',
-                recipeImageUrl: 'https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=300&h=200&fit=crop',
-                cookedAt: '2024-01-14T18:30:00Z',
-                rating: 4,
-                usedIngredients: [
-                    { name: '계란', quantity: '3개' },
-                    { name: '대파', quantity: '1대' }
-                ]
-            },
-            {
-                id: 3,
-                recipeId: 2,
-                recipeTitle: '된장찌개',
-                recipeImageUrl: 'https://images.unsplash.com/photo-1559847844-d9c3ad5e4a3c?w=300&h=200&fit=crop',
-                cookedAt: '2024-01-12T19:00:00Z',
-                rating: 5,
-                usedIngredients: [
-                    { name: '두부', quantity: '1/2모' },
-                    { name: '양파', quantity: '1개' },
-                    { name: '대파', quantity: '1대' }
-                ]
-            }
-        ];
-
-        setTimeout(() => {
-            setFolders(mockFolders);
-            setCookingHistory(mockHistory);
-            setLoading(false);
-        }, 500);
-    };
-
-    const handleBack = () => {
-        console.log('Go back to previous page');
-    };
-
-    const handleCreateFolder = () => {
-        if (!newFolderName.trim()) {
-            alert('폴더 이름을 입력해주세요');
-            return;
-        }
-
-        if (folders.some(folder => folder.name === newFolderName)) {
-            alert('이미 존재하는 폴더 이름입니다');
-            return;
-        }
-
-        const newFolder: RecipeFolder = {
-            id: Date.now(),
-            name: newFolderName,
-            recipeCount: 0,
-            createdAt: new Date().toISOString(),
-            recentRecipes: []
-        };
-
-        setFolders([...folders, newFolder]);
-        setNewFolderName('');
-        setShowNewFolderModal(false);
-    };
-
-    const handleFolderClick = (folderId: number) => {
-        console.log('Navigate to folder detail:', folderId);
-    };
-
-    const handleRecipeClick = (recipeId: number) => {
-        console.log('Navigate to recipe detail:', recipeId);
-    };
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffTime = now.getTime() - date.getTime();
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-        if (diffDays === 0) {
-            return '오늘';
-        } else if (diffDays === 1) {
-            return '어제';
-        } else if (diffDays < 7) {
-            return `${diffDays}일 전`;
-        } else {
-            return date.toLocaleDateString('ko-KR');
-        }
-    };
-
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
-                    <p className="text-gray-600">데이터를 불러오는 중...</p>
-                </div>
-            </div>
-        );
-    }
-
+/* ---- 카드 컴포넌트 ---- */
+function MealCard({ title, description, items = [], imageUrl }: MealCardProps) {
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* 헤더 */}
-            <header className="bg-white shadow-sm sticky top-0 z-10">
-                <div className="max-w-4xl mx-auto px-4 py-4">
-                    <div className="flex items-center justify-between mb-4">
-                        <button
-                            onClick={handleBack}
-                            className="flex items-center text-gray-600 hover:text-gray-800"
-                        >
-                            <ArrowLeft className="w-5 h-5 mr-2" />
-                            뒤로
-                        </button>
-                        <h1 className="text-2xl font-bold text-gray-800">나의 레시픽</h1>
-                        <div className="w-20" />
-                    </div>
-
-                    {/* 탭 */}
-                    <div className="flex border-b">
-                        <button
-                            onClick={() => setActiveTab('folders')}
-                            className={`flex items-center gap-2 px-4 py-2 border-b-2 transition-colors ${
-                                activeTab === 'folders'
-                                    ? 'border-emerald-500 text-emerald-600'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                            }`}
-                        >
-                            <Heart className="w-5 h-5" />
-                            찜한 레시피
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('history')}
-                            className={`flex items-center gap-2 px-4 py-2 border-b-2 transition-colors ${
-                                activeTab === 'history'
-                                    ? 'border-emerald-500 text-emerald-600'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                            }`}
-                        >
-                            <Calendar className="w-5 h-5" />
-                            요리 기록
-                        </button>
-                    </div>
+        <div className="bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-lg transition max-w-lg mx-auto">
+            {imageUrl ? (
+                <img src={imageUrl} alt={title} className="h-64 w-full object-cover" />
+            ) : (
+                <div className="h-64 flex items-center justify-center bg-gray-100 text-gray-400">
+                    📷 이미지 없음
                 </div>
-            </header>
-
-            {/* 메인 콘텐츠 */}
-            <div className="max-w-4xl mx-auto px-4 py-6">
-                {activeTab === 'folders' ? (
-                    <div>
-                        {/* 새 폴더 추가 버튼 */}
-                        <div className="mb-6">
-                            <button
-                                onClick={() => setShowNewFolderModal(true)}
-                                className="flex items-center gap-2 px-4 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors"
-                            >
-                                <Plus className="w-5 h-5" />
-                                새 폴더 만들기
-                            </button>
-                        </div>
-
-                        {/* 폴더 목록 */}
-                        {folders.length > 0 ? (
-                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                {folders.map((folder) => (
-                                    <div
-                                        key={folder.id}
-                                        onClick={() => handleFolderClick(folder.id)}
-                                        className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md cursor-pointer transition-shadow"
-                                    >
-                                        <div className="flex items-center gap-3 mb-4">
-                                            <div className="p-2 bg-emerald-100 rounded-lg">
-                                                <Folder className="w-6 h-6 text-emerald-600" />
-                                            </div>
-                                            <div>
-                                                <h3 className="font-semibold text-gray-800">{folder.name}</h3>
-                                                <p className="text-sm text-gray-500">{folder.recipeCount}개 레시피</p>
-                                            </div>
-                                        </div>
-
-                                        {/* 최근 레시피 미리보기 */}
-                                        {folder.recentRecipes.length > 0 ? (
-                                            <div className="grid grid-cols-2 gap-2 mb-3">
-                                                {folder.recentRecipes.slice(0, 2).map((recipe) => (
-                                                    <div key={recipe.id} className="relative">
-                                                        <img
-                                                            src={recipe.imageUrl}
-                                                            alt={recipe.title}
-                                                            className="w-full h-20 object-cover rounded-lg"
-                                                        />
-                                                        <div className="absolute inset-0 bg-black bg-opacity-20 rounded-lg flex items-center justify-center">
-                                                            <Heart className="w-4 h-4 text-white fill-white" />
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                                {folder.recipeCount > 2 && (
-                                                    <div className="bg-gray-100 rounded-lg h-20 flex items-center justify-center text-gray-500 text-sm">
-                                                        +{folder.recipeCount - 2}개 더
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <div className="bg-gray-50 rounded-lg p-4 mb-3 text-center">
-                                                <p className="text-gray-400 text-sm">아직 레시피가 없어요</p>
-                                            </div>
-                                        )}
-
-                                        <p className="text-xs text-gray-400">{formatDate(folder.createdAt)} 생성</p>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-center py-12">
-                                <div className="text-6xl mb-4">📁</div>
-                                <h2 className="text-xl font-semibold text-gray-800 mb-2">아직 폴더가 없어요</h2>
-                                <p className="text-gray-600 mb-4">첫 번째 폴더를 만들어보세요!</p>
-                            </div>
-                        )}
-                    </div>
-                ) : (
-                    <div>
-                        {/* 요리 기록 */}
-                        {cookingHistory.length > 0 ? (
-                            <div className="space-y-4">
-                                {cookingHistory.map((history) => (
-                                    <div
-                                        key={history.id}
-                                        onClick={() => handleRecipeClick(history.recipeId)}
-                                        className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md cursor-pointer transition-shadow"
-                                    >
-                                        <div className="flex gap-4">
-                                            <img
-                                                src={history.recipeImageUrl}
-                                                alt={history.recipeTitle}
-                                                className="w-20 h-20 object-cover rounded-xl flex-shrink-0"
-                                            />
-
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-start justify-between mb-2">
-                                                    <h3 className="text-lg font-semibold text-gray-800 truncate">
-                                                        {history.recipeTitle}
-                                                    </h3>
-                                                    <div className="flex items-center gap-1 ml-2">
-                                                        {[...Array(5)].map((_, i) => (
-                                                            <Star
-                                                                key={i}
-                                                                className={`w-4 h-4 ${
-                                                                    i < history.rating
-                                                                        ? 'fill-yellow-400 text-yellow-400'
-                                                                        : 'text-gray-300'
-                                                                }`}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex items-center gap-4 mb-3 text-sm text-gray-500">
-                                                    <div className="flex items-center gap-1">
-                                                        <ChefHat className="w-4 h-4" />
-                                                        {formatDate(history.cookedAt)} 요리함
-                                                    </div>
-                                                </div>
-
-                                                <div className="mb-2">
-                                                    <p className="text-sm font-medium text-gray-700 mb-1">사용한 재료:</p>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {history.usedIngredients.map((ingredient, idx) => (
-                                                            <span
-                                                                key={idx}
-                                                                className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs"
-                                                            >
-                                {ingredient.name} ({ingredient.quantity})
-                              </span>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-center py-12">
-                                <div className="text-6xl mb-4">👨‍🍳</div>
-                                <h2 className="text-xl font-semibold text-gray-800 mb-2">요리 기록이 없어요</h2>
-                                <p className="text-gray-600">레시피로 요리를 완료하면 기록이 남아요!</p>
-                            </div>
-                        )}
-                    </div>
+            )}
+            <div className="p-6">
+                <h4 className="text-xl font-bold text-gray-800">{title}</h4>
+                <p className="text-sm text-gray-600 mt-2">{description}</p>
+                {items.length > 0 && (
+                    <ul className="mt-4 space-y-2 text-sm text-gray-700">
+                        {items.map((x, i) => (
+                            <li key={i} className="flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full flex-shrink-0"></span>
+                                {x}
+                            </li>
+                        ))}
+                    </ul>
                 )}
             </div>
+        </div>
+    );
+}
 
-            {/* 새 폴더 생성 모달 */}
-            {showNewFolderModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-2xl p-6 w-full max-w-md">
-                        <h3 className="text-xl font-semibold text-gray-800 mb-4">새 폴더 만들기</h3>
+/* ---- 메인 컴포넌트 ---- */
+function RecipeListPage() {
+    const [recipe, setRecipe] = useState<Recipe | null>(null); // 단일 레시피만 관리
+    const [loading, setLoading] = useState(false);
+    const [err, setErr] = useState("");
+    // const navigate = useNavigate(); // 라우팅 훅 사용
 
-                        <div className="mb-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                폴더 이름
-                            </label>
-                            <input
-                                type="text"
-                                value={newFolderName}
-                                onChange={(e) => setNewFolderName(e.target.value)}
-                                placeholder="예: 한식 레시피, 간단 요리"
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                                maxLength={20}
-                                autoFocus
-                            />
-                            <p className="text-xs text-gray-500 mt-1">20자 이내로 입력해주세요</p>
-                        </div>
+    // 방대한 Mock 데이터
+    const baseMockRecipes: Omit<Recipe, 'imageUrl'>[] = [
+        {
+            id: 1,
+            title: "김치볶음밥",
+            description: "김치와 밥만 있으면 뚝딱 완성되는 한국인의 소울푸드.",
+            items: ["김치", "밥", "달걀", "대파", "참기름", "간장", "김가루"],
+        },
+        {
+            id: 2,
+            title: "계란찜",
+            description: "부드럽고 따뜻한 계란찜. 아침, 저녁 가리지 않고 잘 어울려요.",
+            items: ["달걀", "물", "소금", "참기름", "쪽파"],
+        },
+        {
+            id: 3,
+            title: "된장찌개",
+            description: "구수하고 진한 맛의 전통 한국 찌개.",
+            items: ["된장", "두부", "애호박", "감자", "양파", "청양고추"],
+        },
+        {
+            id: 4,
+            title: "불고기",
+            description: "달콤짭조름한 간장 양념이 배인 한국식 소불고기.",
+            items: ["소고기", "간장", "설탕", "배", "마늘", "대파"],
+        },
+        {
+            id: 5,
+            title: "토마토 파스타",
+            description: "상큼한 토마토 소스로 완성하는 이탈리안 감성 요리.",
+            items: ["스파게티", "토마토 소스", "양파", "마늘", "올리브 오일", "바질"],
+        },
+        {
+            id: 6,
+            title: "샐러드",
+            description: "가볍게 즐기는 건강한 한 끼 샐러드.",
+            items: ["양상추", "방울토마토", "오이", "올리브", "드레싱"],
+        },
+        {
+            id: 7,
+            title: "라면",
+            description: "5분 만에 완성하는 국민 간식.",
+            items: ["라면", "계란", "대파", "김치"],
+        },
+        {
+            id: 8,
+            title: "닭볶음탕",
+            description: "매콤달콤한 양념에 푹 졸인 닭요리.",
+            items: ["닭고기", "감자", "양파", "당근", "고추장", "간장"],
+        },
+        {
+            id: 9,
+            title: "비빔밥",
+            description: "여러 가지 나물과 고추장을 비벼먹는 한국 대표 음식.",
+            items: ["밥", "고사리", "시금치", "도라지", "고추장", "계란"],
+        },
+        {
+            id: 10,
+            title: "샌드위치",
+            description: "빵 사이에 재료를 가득 넣은 간단한 한 끼.",
+            items: ["식빵", "햄", "치즈", "양상추", "토마토", "머스타드"],
+        },
+    ];
 
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => setShowNewFolderModal(false)}
-                                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                            >
-                                취소
-                            </button>
-                            <button
-                                onClick={handleCreateFolder}
-                                className="flex-1 px-4 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors"
-                            >
-                                생성
-                            </button>
-                        </div>
-                    </div>
+    const fetchRandomRecipe = async () => {
+        try {
+            setLoading(true);
+            setErr("");
+
+            // 딜레이 시뮬레이션
+            await new Promise((res) => setTimeout(res, 800));
+
+            // Mock 데이터에서 랜덤으로 1개 선택
+            const randomIndex = Math.floor(Math.random() * baseMockRecipes.length);
+            const selectedRecipe = baseMockRecipes[randomIndex];
+
+            // 이미지 URL에 랜덤 쿼리 추가
+            const query = selectedRecipe.title.replace(/\s/g, '-');
+            const randomSeed = Math.floor(Math.random() * 1000000);
+            const recipeWithRandomImage = {
+                ...selectedRecipe,
+                imageUrl: `https://source.unsplash.com/600x400/?${query}&random=${randomSeed}`,
+            };
+
+            setRecipe(recipeWithRandomImage);
+        } catch (e) {
+            setErr("레시피 추천 실패");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchRandomRecipe();
+    }, []);
+
+    const handleSkip = () => {
+        console.log("다음 레시피 추천");
+        fetchRandomRecipe(); // 다른 랜덤 레시피로 교체
+    };
+
+    const handleView = () => {
+        if (recipe) {
+            // 레시피 상세 페이지로 이동 (id를 URL 파라미터로 넘김)
+            // 실제 라우팅이 필요합니다. 예: navigate(`/recipes/${recipe.id}`);
+            console.log(`레시피 상세 보기: ${recipe.title}`);
+        }
+    };
+
+    const handleFavorite = () => {
+        if (recipe) {
+            // 찜 목록 페이지로 이동 및 레시피 정보 전달
+            console.log(`찜 목록에 ${recipe.title} 추가`);
+            // 실제 라우팅 및 상태 관리가 필요합니다.
+            // 예: navigate('/my-recipes', { state: { newFavorite: recipe } });
+            // 여기서는 찜 목록 코드를 참고하여 console.log로 대체
+            alert(`${recipe.title} (이)가 찜 목록에 추가되었습니다!`);
+        }
+    };
+
+    return (
+        <div className="p-6 max-w-5xl mx-auto">
+            <h2 className="text-2xl font-bold text-gray-800 text-center mb-8">AI 레시피 추천 (Mock)</h2>
+
+            {loading && (
+                <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
+                    <p className="text-gray-500">AI가 요리를 고민 중… 🤔</p>
                 </div>
+            )}
+
+            {err && <div className="text-center text-red-500 font-medium py-12">{err}</div>}
+
+            {!loading && !err && recipe && (
+                <>
+                    <MealCard {...recipe} />
+                    <div className="mt-8 flex justify-center gap-4">
+                        <button
+                            onClick={handleSkip}
+                            className="px-6 py-3 rounded-lg bg-gray-200 text-gray-800 font-semibold shadow hover:bg-gray-300 transition"
+                        >
+                            취소
+                        </button>
+                        <button
+                            onClick={handleView}
+                            className="px-6 py-3 rounded-lg bg-blue-500 text-white font-semibold shadow hover:bg-blue-600 transition"
+                        >
+                            보기
+                        </button>
+                        <button
+                            onClick={handleFavorite}
+                            className="px-6 py-3 rounded-lg bg-red-500 text-white font-semibold shadow hover:bg-red-600 transition"
+                        >
+                            찜
+                        </button>
+                    </div>
+                </>
             )}
         </div>
     );
-};
+}
 
-export default MyRecipePage;
+export default RecipeListPage;
