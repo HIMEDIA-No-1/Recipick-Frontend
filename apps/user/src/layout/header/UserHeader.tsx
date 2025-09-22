@@ -4,26 +4,38 @@ import {
     User as UserIcon,
     Bell,
     Menu,
-    Utensils,
     Refrigerator,
     Heart,
     BarChart,
+    ChefHat,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import recipickLogo from "../../../assets/logo_full_m.png"; // footer와 같은 경로
-
-interface User {
-    name: string;
-}
+import recipickLogo from "../../../assets/logo_full_m.png";
+import { StorageUtil, type UserState, type NotificationsData } from "../../utils/localStorage";
 
 const Header: React.FC = () => {
-    const [user, setUser] = useState<User | null>({ name: "사용자 이름" });
+    const [user, setUser] = useState<UserState | null>(null);
     const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
     const [isNotificationOpen, setIsNotificationOpen] = useState<boolean>(false);
+    const [notifications, setNotifications] = useState<NotificationsData>({ allNotifications: [] });
     const navigate = useNavigate();
 
+    // 컴포넌트 마운트 시 로컬 스토리지에서 데이터 로드
+    useEffect(() => {
+        const userState = StorageUtil.getUserState();
+        if (userState?.isAuthenticated) {
+            setUser(userState);
+        }
+
+        const notificationData = StorageUtil.getNotificationsData();
+        if (notificationData) {
+            setNotifications(notificationData);
+        }
+    }, []);
+
     const handleLogout = () => {
-        console.log("Logging out...");
+        // 명세서에 따라 모든 데이터 삭제
+        StorageUtil.clearAll();
         setUser(null);
         setIsMenuOpen(false);
         navigate("/auth/login");
@@ -75,7 +87,7 @@ const Header: React.FC = () => {
                             onClick={() => navigate("/recipes")}
                             className="text-[#7A7E7B] hover:text-[#6789A5] font-semibold transition-colors flex items-center gap-1"
                         >
-                            <Utensils className="w-5 h-5" />
+                            <ChefHat className="w-5 h-5" />
                             레시피
                         </button>
                     </nav>
@@ -94,9 +106,11 @@ const Header: React.FC = () => {
                             }}
                         >
                             <Bell className="text-[#878787]" />
-                            <span className="absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
-                                3
-                            </span>
+                            {notifications.allNotifications.filter(n => !n.isRead).length > 0 && (
+                                <span className="absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                                    {notifications.allNotifications.filter(n => !n.isRead).length}
+                                </span>
+                            )}
                         </button>
 
                         {/* 알림 드롭다운 */}
@@ -108,37 +122,36 @@ const Header: React.FC = () => {
                             }`}
                         >
                             <div className="p-3 space-y-3 text-sm text-[#4B4B4B]">
-                                {/* 공유 신청/승낙 알림 */}
-                                <div className="p-2 border-b border-[#F0EEEB]">
-                                    <p className="font-semibold">냉장고 공유 요청</p>
-                                    <div className="flex gap-2 mt-1">
-                                        <button className="px-3 py-1 bg-green-500 text-white text-xs rounded-lg hover:bg-green-600">
-                                            승인
-                                        </button>
-                                        <button className="px-3 py-1 bg-red-500 text-white text-xs rounded-lg hover:bg-red-600">
-                                            거부
-                                        </button>
+                                {notifications.allNotifications.length === 0 ? (
+                                    <div className="p-2 text-center text-[#7A7E7B]">
+                                        알림이 없습니다.
                                     </div>
-                                </div>
+                                ) : (
+                                    <>
+                                        {notifications.allNotifications.slice(0, 3).map((notification) => (
+                                            <div key={notification.notificationId} className={`p-2 border-b border-[#F0EEEB] ${!notification.isRead ? 'bg-blue-50' : ''}`}>
+                                                <p className="font-semibold">{notification.type === 'INVITE_FRIDGE' ? '냉장고 초대' : '메시지'}</p>
+                                                <p className="text-xs text-[#7A7E7B]">
+                                                    {notification.message}
+                                                </p>
+                                                <p className="text-xs text-[#878787] mt-1">
+                                                    {new Date(notification.createdAt).toLocaleDateString()}
+                                                </p>
+                                            </div>
+                                        ))}
 
-                                {/* 소비기한 알림 */}
-                                <div className="p-2 border-b border-[#F0EEEB]">
-                                    <p className="font-semibold">소비기한 임박</p>
-                                    <p className="text-xs text-[#7A7E7B]">
-                                        우유가 곧 만료됩니다.
-                                    </p>
-                                </div>
-
-                                {/* 모든 알림 보기 */}
-                                <button
-                                    onClick={() => {
-                                        setIsNotificationOpen(false);
-                                        navigate("/notifications");
-                                    }}
-                                    className="w-full text-center text-[#6789A5] font-semibold hover:underline mt-2"
-                                >
-                                    모든 알림 보기
-                                </button>
+                                        {/* 모든 알림 보기 */}
+                                        <button
+                                            onClick={() => {
+                                                setIsNotificationOpen(false);
+                                                navigate("/notifications");
+                                            }}
+                                            className="w-full text-center text-[#6789A5] font-semibold hover:underline mt-2"
+                                        >
+                                            모든 알림 보기
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -166,7 +179,7 @@ const Header: React.FC = () => {
                                 {user ? (
                                     <>
                                         <div className="px-4 py-2 text-sm text-[#6789A5] border-b border-[#F0EEEB] font-semibold">
-                                            {user.name}
+                                            {user.nickname}
                                         </div>
                                         <button
                                             onClick={() => {

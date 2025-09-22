@@ -1,196 +1,117 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Star, Users } from 'lucide-react';
-
-// window.alert를 대체하는 커스텀 모달 컴포넌트
-const CustomModal: React.FC<{ message: string; onClose: () => void }> = ({ message, onClose }) => {
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
-                <h3 className="text-xl font-semibold text-[#7A7E7B] mb-4">알림</h3>
-                <p className="text-sm text-[#4B4B4B] mb-6">{message}</p>
-                <button
-                    onClick={onClose}
-                    className="w-full px-4 py-3 bg-[#6789A5] hover:bg-[#52708E] text-white rounded-lg transition-colors"
-                >
-                    확인
-                </button>
-            </div>
-        </div>
-    );
-};
-
-// 냉장고 타입 인터페이스
-interface Refrigerator {
-    id: number;
-    name: string;
-    isDefault: boolean;
-    isFavorite: boolean;
-    ownerId: number;
-    memberCount: number;
-    ingredientCount: number;
-    createdAt: string;
-    memo?: string;
-}
-
-// 신규 사용자 가이드 인터페이스
-interface NewUserGuidance {
-    show: boolean;
-    step: number;
-}
+import { useNavigate } from 'react-router-dom';
+import { StorageUtil, type FridgesData, type Fridge } from '../../utils/localStorage';
 
 const FridgeListPage = () => {
-    const [refrigerators, setRefrigerators] = useState<Refrigerator[]>([]);
+    const navigate = useNavigate();
+    const [fridgesData, setFridgesData] = useState<FridgesData>({ allFridges: [], defaultFridgeId: '' });
     const [loading, setLoading] = useState(true);
     const [showNewFridgeModal, setShowNewFridgeModal] = useState(false);
     const [newFridgeName, setNewFridgeName] = useState('');
-    const [guidance, setGuidance] = useState<NewUserGuidance>({ show: false, step: 1 });
-    const [isNewUser, setIsNewUser] = useState(false);
-    const [showAlert, setShowAlert] = useState(false);
-    const [alertMessage, setAlertMessage] = useState('');
-
-    // Tailwind CSS 및 Inter 폰트를 로드하기 위한 스크립트
-    const TW_SCRIPT = `
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-      body {
-        font-family: 'Inter', sans-serif;
-      }
-    </style>
-  `;
 
     useEffect(() => {
-        // 컴포넌트 마운트 시 Tailwind CSS 및 폰트 스크립트 삽입
-        const script = document.createElement('div');
-        script.innerHTML = TW_SCRIPT;
-        document.head.appendChild(script);
-
-        loadRefrigerators();
-
-        return () => {
-            // 컴포넌트 언마운트 시 스크립트 제거
-            document.head.removeChild(script);
-        };
+        loadFridges();
     }, []);
 
-    const loadRefrigerators = () => {
-        // Mock 데이터 로드 - 신규 사용자 체크
-        const mockRefrigerators: Refrigerator[] = [
-            {
-                id: 1,
-                name: '우리집 냉장고',
-                isDefault: true,
-                isFavorite: true,
-                ownerId: 1,
-                memberCount: 1,
-                ingredientCount: 15,
-                createdAt: '2024-01-01T10:00:00Z',
-                memo: '우유 떨어지면 구매하기'
-            },
-            {
-                id: 2,
-                name: '공유 냉장고',
-                isDefault: false,
-                isFavorite: false,
-                ownerId: 2,
-                memberCount: 3,
-                ingredientCount: 8,
-                createdAt: '2024-01-10T15:30:00Z'
-            },
-            {
-                id: 3,
-                name: '사무실 냉장고',
-                isDefault: false,
-                isFavorite: true,
-                ownerId: 1,
-                memberCount: 5,
-                ingredientCount: 12,
-                createdAt: '2024-01-15T09:20:00Z'
-            }
-        ];
-
-        // 신규 사용자인 경우 가이드 표시 (데이터가 비어있는 경우)
-        if (mockRefrigerators.length === 0) {
-            setIsNewUser(true);
-            setGuidance({ show: true, step: 1 });
-        } else {
-            setRefrigerators(mockRefrigerators);
+    const loadFridges = () => {
+        const data = StorageUtil.getFridgesData();
+        if (data) {
+            setFridgesData(data);
         }
-
-        setTimeout(() => {
-            setLoading(false);
-        }, 500);
+        setLoading(false);
     };
 
     const handleCreateFridge = () => {
         if (!newFridgeName.trim()) {
-            setAlertMessage('냉장고 이름을 입력해주세요');
-            setShowAlert(true);
             return;
         }
 
-        const newFridge: Refrigerator = {
-            id: Date.now(),
+        const userState = StorageUtil.getUserState();
+        if (!userState) return;
+
+        const newFridgeId = `fridge-${Date.now()}`;
+        const newFridge: Fridge = {
+            fridgeId: newFridgeId,
             name: newFridgeName,
-            isDefault: refrigerators.length === 0,
+            isDefault: fridgesData.allFridges.length === 0,
             isFavorite: false,
-            ownerId: 1,
-            memberCount: 1,
-            ingredientCount: 0,
-            createdAt: new Date().toISOString()
+            memo: '',
+            members: [
+                {
+                    userId: userState.userId,
+                    nickname: userState.nickname,
+                    role: 'owner',
+                },
+            ],
+            compartments: [
+                {
+                    compartmentId: `${newFridgeId}-cool`,
+                    name: '냉장실',
+                    type: 'COOL',
+                },
+                {
+                    compartmentId: `${newFridgeId}-freeze`,
+                    name: '냉동실',
+                    type: 'FREEZE',
+                },
+                {
+                    compartmentId: `${newFridgeId}-pantry`,
+                    name: '실온보관',
+                    type: 'PANTRY',
+                },
+            ],
         };
 
-        setRefrigerators([...refrigerators, newFridge]);
+        const updatedData: FridgesData = {
+            allFridges: [...fridgesData.allFridges, newFridge],
+            defaultFridgeId: fridgesData.allFridges.length === 0 ? newFridgeId : fridgesData.defaultFridgeId,
+        };
+
+        StorageUtil.saveFridgesData(updatedData);
+        setFridgesData(updatedData);
         setNewFridgeName('');
         setShowNewFridgeModal(false);
-
-        // 신규 사용자 가이드 완료
-        if (isNewUser) {
-            setGuidance({ show: false, step: 1 });
-            setIsNewUser(false);
-        }
     };
 
-    const handleFridgeClick = (fridgeId: number) => {
-        console.log('Navigate to fridge detail:', fridgeId);
+    const handleFridgeClick = (fridgeId: string) => {
+        navigate(`/fridges/${fridgeId}`);
     };
 
-    const handleToggleFavorite = (fridgeId: number) => {
-        setRefrigerators(prev =>
-            prev.map(fridge =>
-                fridge.id === fridgeId
+    const handleToggleFavorite = (fridgeId: string) => {
+        const updatedData: FridgesData = {
+            ...fridgesData,
+            allFridges: fridgesData.allFridges.map(fridge =>
+                fridge.fridgeId === fridgeId
                     ? { ...fridge, isFavorite: !fridge.isFavorite }
                     : fridge
-            )
-        );
+            ),
+        };
+
+        StorageUtil.saveFridgesData(updatedData);
+        setFridgesData(updatedData);
     };
 
-    const handleSetDefault = (fridgeId: number) => {
-        setRefrigerators(prev =>
-            prev.map(fridge => ({
-                ...fridge,
-                isDefault: fridge.id === fridgeId
-            }))
-        );
+    const handleSetDefault = (fridgeId: string) => {
+        const updatedData: FridgesData = {
+            allFridges: fridgesData.allFridges,
+            defaultFridgeId: fridgeId,
+        };
+
+        StorageUtil.saveFridgesData(updatedData);
+        setFridgesData(updatedData);
     };
 
-    const handleCloseGuidance = () => {
-        setGuidance({ show: false, step: 1 });
-    };
-
-    const sortedRefrigerators = [...refrigerators].sort((a, b) => {
+    const sortedFridges = [...fridgesData.allFridges].sort((a, b) => {
         // 기본 냉장고가 최상단
-        if (a.isDefault && !b.isDefault) return -1;
-        if (!a.isDefault && b.isDefault) return 1;
+        if (a.fridgeId === fridgesData.defaultFridgeId && b.fridgeId !== fridgesData.defaultFridgeId) return -1;
+        if (a.fridgeId !== fridgesData.defaultFridgeId && b.fridgeId === fridgesData.defaultFridgeId) return 1;
 
         // 즐겨찾기가 그 다음
         if (a.isFavorite && !b.isFavorite) return -1;
         if (!a.isFavorite && b.isFavorite) return 1;
 
-        // 나머지는 생성일 기준
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        return 0;
     });
 
     if (loading) {
@@ -206,57 +127,32 @@ const FridgeListPage = () => {
 
     return (
         <div className="min-h-screen bg-[#FAF7F2]">
-            {/* 신규 사용자 가이드 */}
-            {guidance.show && (
-                <div className="bg-[#A7C8E8] text-white">
-                    <div className="max-w-4xl mx-auto px-4 py-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h2 className="font-semibold mb-1">환영합니다! 첫 번째 냉장고를 만들어보세요</h2>
-                                <p className="text-sm text-[#E0EBF7]">냉장고를 생성하면 식재료 관리를 시작할 수 있어요</p>
-                            </div>
-                            <button
-                                onClick={handleCloseGuidance}
-                                className="text-[#E0EBF7] hover:text-white"
-                            >
-                                ✕
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* 메인 콘텐츠 */}
             <div className="max-w-4xl mx-auto px-4 py-6">
                 <div className="flex items-center justify-between mb-6">
                     <h1 className="text-2xl font-bold text-[#6789A5]">냉장고 관리</h1>
                     <button
                         onClick={() => setShowNewFridgeModal(true)}
-                        className={`p-2 rounded-full transition-colors ${
-                            guidance.show
-                                ? 'bg-[#E0EBF7] text-[#6789A5] animate-pulse'
-                                : 'hover:bg-[#E0EBF7] text-[#7A7E7B] hover:text-[#6789A5]'
-                        }`}
+                        className="p-2 rounded-full hover:bg-[#E0EBF7] text-[#7A7E7B] hover:text-[#6789A5] transition-colors"
                     >
                         <Plus className="w-6 h-6" />
                     </button>
                 </div>
 
                 {/* 냉장고 목록 */}
-                {sortedRefrigerators.length > 0 ? (
+                {sortedFridges.length > 0 ? (
                     <div className="space-y-4">
-                        {sortedRefrigerators.map((fridge) => (
+                        {sortedFridges.map((fridge) => (
                             <div
-                                key={fridge.id}
-                                onClick={() => handleFridgeClick(fridge.id)}
+                                key={fridge.fridgeId}
+                                onClick={() => handleFridgeClick(fridge.fridgeId)}
                                 className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
                             >
                                 <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center gap-3">
-                                        {fridge.isDefault && (
+                                        {fridge.fridgeId === fridgesData.defaultFridgeId && (
                                             <span className="px-3 py-1 bg-[#6789A5] text-white text-xs font-medium rounded-full">
-                        기본
-                      </span>
+                                                기본
+                                            </span>
                                         )}
                                         <h3 className="text-xl font-semibold text-[#4B4B4B]">
                                             {fridge.name}
@@ -267,7 +163,7 @@ const FridgeListPage = () => {
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                handleToggleFavorite(fridge.id);
+                                                handleToggleFavorite(fridge.fridgeId);
                                             }}
                                             className="p-2 hover:bg-[#F0EEEB] rounded-full transition-colors"
                                         >
@@ -280,10 +176,10 @@ const FridgeListPage = () => {
                                             />
                                         </button>
 
-                                        {fridge.memberCount > 1 && (
+                                        {fridge.members.length > 1 && (
                                             <div className="flex items-center gap-1 text-[#7A7E7B]">
                                                 <Users className="w-4 h-4" />
-                                                <span className="text-sm">{fridge.memberCount}</span>
+                                                <span className="text-sm">{fridge.members.length}</span>
                                             </div>
                                         )}
                                     </div>
@@ -291,11 +187,11 @@ const FridgeListPage = () => {
 
                                 <div className="grid grid-cols-2 gap-4 mb-4">
                                     <div className="text-center p-3 bg-[#F0EEEB] rounded-lg">
-                                        <p className="text-2xl font-bold text-[#4B4B4B]">{fridge.ingredientCount}</p>
-                                        <p className="text-sm text-[#7A7E7B]">식재료</p>
+                                        <p className="text-2xl font-bold text-[#4B4B4B]">{fridge.compartments.length}</p>
+                                        <p className="text-sm text-[#7A7E7B]">보관칸</p>
                                     </div>
                                     <div className="text-center p-3 bg-[#F0EEEB] rounded-lg">
-                                        <p className="text-2xl font-bold text-[#4B4B4B]">{fridge.memberCount}</p>
+                                        <p className="text-2xl font-bold text-[#4B4B4B]">{fridge.members.length}</p>
                                         <p className="text-sm text-[#7A7E7B]">멤버</p>
                                     </div>
                                 </div>
@@ -309,15 +205,13 @@ const FridgeListPage = () => {
                                 )}
 
                                 <div className="flex items-center justify-between text-sm text-[#878787]">
-                  <span>
-                    {new Date(fridge.createdAt).toLocaleDateString('ko-KR')} 생성
-                  </span>
+                                    <span>소유자: {fridge.members.find(m => m.role === 'owner')?.nickname}</span>
 
-                                    {!fridge.isDefault && (
+                                    {fridge.fridgeId !== fridgesData.defaultFridgeId && (
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                handleSetDefault(fridge.id);
+                                                handleSetDefault(fridge.fridgeId);
                                             }}
                                             className="text-[#6789A5] hover:text-[#52708E] font-medium"
                                         >
@@ -359,14 +253,6 @@ const FridgeListPage = () => {
                             <p className="text-xs text-[#878787] mt-1">20자 이내로 입력해주세요</p>
                         </div>
 
-                        {isNewUser && (
-                            <div className="mb-6 p-4 bg-[#E0EBF7] rounded-lg">
-                                <p className="text-sm text-[#6789A5]">
-                                    💡 첫 번째 냉장고는 자동으로 '기본 냉장고'로 설정됩니다
-                                </p>
-                            </div>
-                        )}
-
                         <div className="flex gap-3">
                             <button
                                 onClick={() => setShowNewFridgeModal(false)}
@@ -384,9 +270,6 @@ const FridgeListPage = () => {
                     </div>
                 </div>
             )}
-
-            {/* Alert Modal */}
-            {showAlert && <CustomModal message={alertMessage} onClose={() => setShowAlert(false)} />}
         </div>
     );
 };

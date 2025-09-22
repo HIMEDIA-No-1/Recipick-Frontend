@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { StorageUtil, InitialDataGenerator, type UserState } from '../../utils/localStorage';
 
 interface FormData {
     email: string;
@@ -12,6 +14,7 @@ interface FormErrors {
 }
 
 const LoginPage = () => {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState<FormData>({ email: '', password: '' });
     const [showPassword, setShowPassword] = useState(false);
     const [errors, setErrors] = useState<FormErrors>({});
@@ -44,24 +47,47 @@ const LoginPage = () => {
         setIsLoading(true);
 
         try {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            const userData = {
+            // 실제 계정 검증
+            const account = StorageUtil.authenticateUser(formData.email, formData.password);
+
+            if (!account) {
+                setErrors({ general: '이메일 또는 비밀번호가 올바르지 않습니다.' });
+                return;
+            }
+
+            // 명세서에 맞는 사용자 데이터 구조로 로그인 상태 저장
+            const userData: UserState = {
                 isAuthenticated: true,
-                userId: 'user-001',
-                nickname: '홍길동',
-                profileImage: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-                accessToken: 'mock-access-token',
-                refreshToken: 'mock-refresh-token',
+                userId: account.userId,
+                nickname: account.nickname,
+                profileImage: account.profileImage,
+                accessToken: `access-token-${Date.now()}`,
+                refreshToken: `refresh-token-${Date.now()}`,
                 isInitialSetupCompleted: true,
-                credentialType: 'EMAIL'
+                credentialType: account.credentialType
             };
-            localStorage.setItem('user_state', JSON.stringify(userData));
-            window.location.href = '/fridges';
+
+            // 명세서에 맞는 로컬 스토리지 저장
+            StorageUtil.saveUserState(userData);
+
+            // 기존 사용자이므로 초기 데이터가 이미 있는지 확인 후 필요시만 생성
+            const existingFridges = StorageUtil.getFridgesData();
+            if (!existingFridges || existingFridges.allFridges.length === 0) {
+                InitialDataGenerator.initializeUserData(userData.userId, userData.nickname);
+            }
+
+            // 냉장고 페이지로 리다이렉트
+            navigate('/fridges');
         } catch (error) {
             setErrors({ general: '로그인에 실패했습니다. 다시 시도해주세요.' });
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleSocialLogin = async (_provider: 'GOOGLE' | 'KAKAO' | 'NAVER') => {
+        // 소셜 로그인은 아직 미구현이므로 NotFound 페이지로 이동
+        navigate('/404');
     };
 
     return (
@@ -154,7 +180,11 @@ const LoginPage = () => {
 
                     {/* 소셜 로그인 버튼 */}
                     <div className="space-y-4">
-                        <a href="/404" className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-white dark:bg-[#242424] hover:bg-[#F0EEEB] dark:hover:bg-[#2F2F2F] text-[#7A7E7B] dark:text-[#E0E0E0] font-semibold rounded-xl transition-colors shadow-md border border-[#D1D1D1] dark:border-[#404040]">
+                        <button
+                            onClick={() => handleSocialLogin('GOOGLE')}
+                            disabled={isLoading}
+                            className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-white dark:bg-[#242424] hover:bg-[#F0EEEB] dark:hover:bg-[#2F2F2F] text-[#7A7E7B] dark:text-[#E0E0E0] font-semibold rounded-xl transition-colors shadow-md border border-[#D1D1D1] dark:border-[#404040] disabled:opacity-50"
+                        >
                             {/* Google 아이콘 */}
                             <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -163,23 +193,31 @@ const LoginPage = () => {
                                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                             </svg>
                             <span>Google로 계속하기</span>
-                        </a>
+                        </button>
 
-                        <a href="/404" className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-yellow-400 dark:bg-yellow-500 hover:bg-yellow-500 dark:hover:bg-yellow-600 text-gray-800 dark:text-gray-900 font-semibold rounded-xl transition-colors shadow-md">
+                        <button
+                            onClick={() => handleSocialLogin('KAKAO')}
+                            disabled={isLoading}
+                            className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-yellow-400 dark:bg-yellow-500 hover:bg-yellow-500 dark:hover:bg-yellow-600 text-gray-800 dark:text-gray-900 font-semibold rounded-xl transition-colors shadow-md disabled:opacity-50"
+                        >
                             {/* Kakao 아이콘 */}
                             <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                                 <path fill="#3C1E1E" d="M12 3C6.48 3 2 6.41 2 10.58c0 2.66 1.74 4.99 4.37 6.33l-.84 3.07c-.09.34.34.6.65.39l3.64-2.43c.72.07 1.46.11 2.18.11 5.52 0 10-3.41 10-7.58S17.52 3 12 3z"/>
                             </svg>
                             <span>카카오로 계속하기</span>
-                        </a>
+                        </button>
 
-                        <a href="/404" className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-green-500 dark:bg-green-600 hover:bg-green-600 dark:hover:bg-green-700 text-white font-semibold rounded-xl transition-colors shadow-md">
+                        <button
+                            onClick={() => handleSocialLogin('NAVER')}
+                            disabled={isLoading}
+                            className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-green-500 dark:bg-green-600 hover:bg-green-600 dark:hover:bg-green-700 text-white font-semibold rounded-xl transition-colors shadow-md disabled:opacity-50"
+                        >
                             {/* Naver 아이콘 */}
                             <svg className="w-5 h-5 mr-3 fill-white" viewBox="0 0 24 24">
                                 <path d="M16.273 12.845 7.376 0H0v24h7.726V11.156L16.624 24H24V0h-7.727v12.845z"/>
                             </svg>
                             <span>네이버로 계속하기</span>
-                        </a>
+                        </button>
                     </div>
 
                     {/* 링크 */}

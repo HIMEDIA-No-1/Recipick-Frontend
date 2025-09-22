@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { StorageUtil } from '../../utils/localStorage';
 
 interface FormData {
     nickname: string;
@@ -19,7 +21,8 @@ interface FormErrors {
     general?: string;
 }
 
-const SignupPage: React.FC = () => {
+const SignupPage = React.memo(() => {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState<FormData>({
         nickname: '',
         email: '',
@@ -30,10 +33,7 @@ const SignupPage: React.FC = () => {
     });
     const [errors, setErrors] = useState<FormErrors>({});
     const [isLoading, setIsLoading] = useState(false);
-
-    // Mock: 이미 존재하는 닉네임/이메일
-    const existingNicknames = ['admin', 'test', 'hong'];
-    const existingEmails = ['test@example.com', 'user@naver.com'];
+    const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type, checked } = e.target;
@@ -45,6 +45,7 @@ const SignupPage: React.FC = () => {
         if (errors[name as keyof FormErrors]) {
             setErrors(prev => ({ ...prev, [name]: undefined }));
         }
+        setMessage(null);
     };
 
     const validateForm = () => {
@@ -53,12 +54,17 @@ const SignupPage: React.FC = () => {
         // 닉네임 유효성
         if (!formData.nickname.trim()) newErrors.nickname = '닉네임을 입력해주세요.';
         else if (formData.nickname.length < 2) newErrors.nickname = '닉네임은 2글자 이상이어야 합니다.';
-        else if (existingNicknames.includes(formData.nickname)) newErrors.nickname = '이미 사용 중인 닉네임입니다.';
 
-        // 이메일 유효성
+        // 이메일 유효성 및 중복 체크
         if (!formData.email.trim()) newErrors.email = '이메일을 입력해주세요.';
         else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = '올바른 이메일 형식이 아닙니다.';
-        else if (existingEmails.includes(formData.email)) newErrors.email = '이미 사용 중인 이메일입니다.';
+        else {
+            // 실제 계정 데이터에서 중복 체크
+            const accounts = StorageUtil.getUserAccounts();
+            if (accounts && accounts.accounts.find(acc => acc.email === formData.email)) {
+                newErrors.email = '이미 사용 중인 이메일입니다.';
+            }
+        }
 
         // 비밀번호 유효성
         if (!formData.password.trim()) newErrors.password = '비밀번호를 입력해주세요.';
@@ -78,28 +84,32 @@ const SignupPage: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (!validateForm()) return;
+        if (!validateForm()) {
+            setMessage({ text: '입력 정보를 확인해주세요.', type: 'error' });
+            return;
+        }
 
         setIsLoading(true);
         try {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            const userData = {
-                isAuthenticated: true,
-                userId: `user-${Date.now()}`,
+            // 실제 계정 등록
+            StorageUtil.registerAccount({
+                email: formData.email,
+                password: formData.password,
                 nickname: formData.nickname,
                 profileImage: '',
-                accessToken: 'mock-access-token',
-                refreshToken: 'mock-refresh-token',
-                isInitialSetupCompleted: false,
                 credentialType: 'EMAIL',
-            };
+            });
 
-            localStorage.setItem('user_state', JSON.stringify(userData));
-            alert('회원가입 성공!');
-            window.location.href = '/fridges';
-        } catch {
-            setErrors({ general: '회원가입에 실패했습니다. 다시 시도해주세요.' });
+            setMessage({ text: '회원가입 성공!', type: 'success' });
+
+            // 성공 메시지 표시 후 2초 뒤 로그인 페이지로 이동
+            setTimeout(() => {
+                navigate('/auth/login');
+            }, 2000);
+
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : '회원가입에 실패했습니다.';
+            setMessage({ text: errorMessage, type: 'error' });
         } finally {
             setIsLoading(false);
         }
@@ -128,9 +138,13 @@ const SignupPage: React.FC = () => {
                         <p className="text-[#A8A8A8]">필수 정보를 입력해주세요</p>
                     </div>
 
-                    {errors.general && (
-                        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm mb-4">
-                            {errors.general}
+                    {message && (
+                        <div className={`border px-4 py-3 rounded-lg text-sm mb-4 ${
+                            message.type === 'success'
+                                ? 'bg-green-50 border-green-200 text-green-600'
+                                : 'bg-red-50 border-red-200 text-red-600'
+                        }`}>
+                            {message.text}
                         </div>
                     )}
 
@@ -236,6 +250,6 @@ const SignupPage: React.FC = () => {
             </div>
         </div>
     );
-};
+});
 
 export default SignupPage;

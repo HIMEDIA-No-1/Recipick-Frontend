@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import UserRouteGuard from './UserRouteGuard';
 
 // 페이지 컴포넌트 불러오기
@@ -8,7 +8,7 @@ import SignupPage from '../pages/auth/SignupPage.tsx';
 import RecipeListPage from '../pages/recipe/RecipeListPage.tsx';
 import RecipeDetailPage from '../pages/recipe/RecipeDetailPage.tsx';
 import NotificationPage from '../pages/notification/NotificationPage.tsx';
-// import MyProfileEditPage from '../pages/mypage/MyProfileEditPage.tsx';
+import MyProfileEditPage from '../pages/mypage/MyProfileEditPage.tsx';
 import MyRecipePage from '../pages/mypage/MyRecipePage.tsx';
 import MyStatisticsPage from '../pages/mypage/MyStatisticsPage.tsx';
 import FridgeListPage from '../pages/refrigerator/FridgeListPage.tsx';
@@ -35,7 +35,7 @@ const UserRoutes = () => {
                     <Route path="/recipes" element={<RecipeListPage />} />
                     <Route path="/recipes/:recipeId" element={<RecipeDetailPage />} />
                     <Route path="/notifications" element={<NotificationPage />} />
-                    {/*<Route path="/mypage/profile" element={<MyProfileEditPage />} />*/}
+                    <Route path="/mypage/profile" element={<MyProfileEditPage />} />
                     <Route path="/mypage/recipe" element={<MyRecipePage />} />
                     <Route path="/mypage/statistics" element={<MyStatisticsPage />} />
                 </Route>
