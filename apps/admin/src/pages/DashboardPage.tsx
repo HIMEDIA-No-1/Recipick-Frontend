@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useAdminStore } from '../store/adminStore';
-import { Users, FileText, Package, Trash2, TrendingUp, Star } from 'lucide-react';
+import { Users, FileText, Trash2, TrendingUp, Star } from 'lucide-react';
 
 const DashboardPage: React.FC = () => {
   const {

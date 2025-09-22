@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Sun, Moon } from 'lucide-react';
 // 이미지가 로컬 파일 시스템에 없어 컴파일 오류가 발생하므로, 임시로 플레이스홀더를 사용합니다.
 const recipickLogo = "https://placehold.co/160x40/6789A5/FFFFFF?text=Recipick";
