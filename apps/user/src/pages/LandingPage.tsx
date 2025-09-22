@@ -1,8 +1,8 @@
-import fridgeImg from "../../../assets/fridge.jpg";
-import shoppingCart from "../../../assets/shopping.jpg";
-import bestBy from "../../../assets/bestby.jpg";
-import webApp from "../../../assets/webapp.jpg";
-import register from "../../../assets/register.jpg";
+import fridgeImg from "../../assets/fridge.jpg";
+import shoppingCart from "../../assets/shopping.jpg";
+import bestBy from "../../assets/bestby.jpg";
+import webApp from "../../assets/webapp.jpg";
+import register from "../../assets/register.jpg";
 
 
 const LandingPage = () => {

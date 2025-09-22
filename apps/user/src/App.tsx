@@ -2,7 +2,9 @@ import UserRoutes from './routes/UserRoutes.tsx';
 import UserHeader from './layout/header/UserHeader.tsx';
 import UserFooter from './layout/footer/UserFooter.jsx';
 
+
 const App = () => {
+    console.log('App component rendering');
     return (
         <div className="flex flex-col min-h-screen dark:bg-gray-900 text-gray-800 dark:text-gray-200">
             <UserHeader />
