@@ -34,8 +34,8 @@ const Header: React.FC = () => {
     }, []);
 
     const handleLogout = () => {
-        // 명세서에 따라 모든 데이터 삭제
-        StorageUtil.clearAll();
+        // 로그아웃 시 사용자 상태만 삭제하고 다른 데이터는 유지
+        StorageUtil.remove('user_state');
         setUser(null);
         setIsMenuOpen(false);
         navigate("/auth/login");

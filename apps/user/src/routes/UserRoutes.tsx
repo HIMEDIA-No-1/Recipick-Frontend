@@ -13,6 +13,7 @@ import MyRecipePage from '../pages/mypage/MyRecipePage.tsx';
 import MyStatisticsPage from '../pages/mypage/MyStatisticsPage.tsx';
 import FridgeListPage from '../pages/refrigerator/FridgeListPage.tsx';
 import FridgeDetailPage from '../pages/refrigerator/FridgeDetailPage.tsx';
+import FridgeSharePage from '../pages/refrigerator/FridgeSharePage.tsx';
 import CompartmentDetailPage from '../pages/refrigerator/CompartmentDetailPage.tsx';
 import NotFoundPage from '../pages/error/NotFoundPage.tsx';
 import FindPasswordPage from "../pages/auth/FindPasswordPage.tsx";
@@ -31,6 +32,7 @@ const UserRoutes = () => {
                 <Route element={<UserRouteGuard />}>
                     <Route path="/fridges" element={<FridgeListPage />} />
                     <Route path="/fridges/:fridgeId" element={<FridgeDetailPage />} />
+                    <Route path="/fridges/:fridgeId/share" element={<FridgeSharePage />} />
                     <Route path="/fridges/:fridgeId/:compartmentId" element={<CompartmentDetailPage />} />
                     <Route path="/recipes" element={<RecipeListPage />} />
                     <Route path="/recipes/:recipeId" element={<RecipeDetailPage />} />

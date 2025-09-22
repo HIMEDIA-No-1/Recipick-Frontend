@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bell, Clock, Users, ArrowLeft } from 'lucide-react';
+import { Bell, Clock, Users, ArrowLeft, Check, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { StorageUtil, type NotificationsData } from '../../utils/localStorage';
 
@@ -8,6 +8,7 @@ const NotificationPage = () => {
     const [notificationsData, setNotificationsData] = useState<NotificationsData>({ allNotifications: [] });
     const [selectedType, setSelectedType] = useState<string>('ALL');
     const [loading, setLoading] = useState(true);
+    const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
     useEffect(() => {
         loadNotifications();
@@ -44,6 +45,32 @@ const NotificationPage = () => {
 
         StorageUtil.saveNotificationsData(updatedData);
         setNotificationsData(updatedData);
+    };
+
+    const handleAcceptInvitation = (notificationId: string) => {
+        const success = StorageUtil.acceptFridgeInvitation(notificationId);
+
+        if (success) {
+            setMessage({ text: '냉장고 초대를 수락했습니다!', type: 'success' });
+            loadNotifications(); // 알림 목록 새로고침
+        } else {
+            setMessage({ text: '초대 수락에 실패했습니다.', type: 'error' });
+        }
+
+        setTimeout(() => setMessage(null), 3000);
+    };
+
+    const handleRejectInvitation = (notificationId: string) => {
+        const success = StorageUtil.rejectFridgeInvitation(notificationId);
+
+        if (success) {
+            setMessage({ text: '냉장고 초대를 거절했습니다.', type: 'success' });
+            loadNotifications(); // 알림 목록 새로고침
+        } else {
+            setMessage({ text: '초대 거절에 실패했습니다.', type: 'error' });
+        }
+
+        setTimeout(() => setMessage(null), 3000);
     };
 
     const filteredNotifications = notificationsData.allNotifications.filter(notification => {
@@ -102,6 +129,17 @@ const NotificationPage = () => {
                         </button>
                     )}
                 </div>
+
+                {/* 메시지 */}
+                {message && (
+                    <div className={`mb-6 p-4 rounded-lg ${
+                        message.type === 'success'
+                            ? 'bg-green-50 border border-green-200 text-green-600'
+                            : 'bg-red-50 border border-red-200 text-red-600'
+                    }`}>
+                        {message.text}
+                    </div>
+                )}
 
                 {/* 필터 탭 */}
                 <div className="flex gap-2 mb-6 overflow-x-auto">
@@ -173,9 +211,35 @@ const NotificationPage = () => {
                                             </div>
                                         </div>
 
-                                        <p className="text-[#7A7E7B] text-sm leading-relaxed">
+                                        <p className="text-[#7A7E7B] text-sm leading-relaxed mb-3">
                                             {notification.message}
                                         </p>
+
+                                        {/* 냉장고 초대 버튼 */}
+                                        {notification.type === 'INVITE_FRIDGE' && notification.inviteData && (
+                                            <div className="flex gap-2 mt-3">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleAcceptInvitation(notification.notificationId);
+                                                    }}
+                                                    className="flex items-center gap-1 px-3 py-2 bg-green-500 hover:bg-green-600 text-white text-sm rounded-lg transition-colors"
+                                                >
+                                                    <Check className="w-4 h-4" />
+                                                    수락
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleRejectInvitation(notification.notificationId);
+                                                    }}
+                                                    className="flex items-center gap-1 px-3 py-2 bg-red-500 hover:bg-red-600 text-white text-sm rounded-lg transition-colors"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                    거절
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

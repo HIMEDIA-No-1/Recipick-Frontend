@@ -239,8 +239,18 @@ const MyProfileEditPage: React.FC = () => {
 
         if (!profile) return;
 
-        // 모든 데이터 삭제
-        StorageUtil.clearAll();
+        // 현재 사용자의 데이터만 삭제
+        const accounts = StorageUtil.getUserAccounts();
+        if (accounts) {
+            const updatedAccounts = {
+                ...accounts,
+                accounts: accounts.accounts.filter(acc => acc.userId !== profile.userId)
+            };
+            StorageUtil.saveUserAccounts(updatedAccounts);
+        }
+
+        // 사용자 상태 삭제
+        StorageUtil.remove('user_state');
         showMessage('계정 삭제 완료', '계정이 삭제되었습니다. 이용해주셔서 감사합니다.');
 
         setTimeout(() => {

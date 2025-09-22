@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Users, Settings, StickyNote, Thermometer, Snowflake, Home } from 'lucide-react';
+import { ArrowLeft, Plus, Users, Settings, StickyNote, Thermometer, Snowflake, Home, Calendar, Hash, FileText } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { StorageUtil, type Fridge, type Compartment } from '../../utils/localStorage';
+import { StorageUtil, type Fridge, type Compartment, type Ingredient } from '../../utils/localStorage';
 
 
 // window.alert를 대체하는 커스텀 모달 컴포넌트
@@ -34,6 +34,15 @@ const FridgeDetailPage = () => {
     const [newCompartmentType, setNewCompartmentType] = useState<'COOL' | 'FREEZE' | 'PANTRY'>('COOL');
     const [showAlert, setShowAlert] = useState(false);
     const [alertMessage, setAlertMessage] = useState('');
+    const [showIngredientModal, setShowIngredientModal] = useState(false);
+    const [selectedCompartmentId, setSelectedCompartmentId] = useState<string>('');
+    const [ingredientForm, setIngredientForm] = useState({
+        name: '',
+        quantity: 1,
+        expirationDate: '',
+        memo: '',
+        category: '채소'
+    });
 
     // 보관칸 타입 정보 (아이콘 색상 포함)
     const compartmentTypes = [
@@ -74,31 +83,21 @@ const FridgeDetailPage = () => {
     };
 
     const handleCompartmentClick = (compartmentId: string) => {
-        navigate(`/fridges/${fridge?.fridgeId}/compartments/${compartmentId}`);
+        setSelectedCompartmentId(compartmentId);
+        setShowIngredientModal(true);
     };
 
     const handleMemoSave = () => {
         if (!fridge) return;
 
-        const fridgesData = StorageUtil.getFridgesData();
-        if (!fridgesData) return;
+        // 공유된 냉장고 업데이트 (모든 멤버에게 동기화)
+        const success = StorageUtil.updateSharedFridge(fridge.fridgeId, { memo: memoText });
 
-        // 냉장고 데이터 업데이트
-        const updatedFridges = fridgesData.allFridges.map(f =>
-            f.fridgeId === fridge.fridgeId
-                ? { ...f, memo: memoText }
-                : f
-        );
-
-        // localStorage에 저장
-        StorageUtil.saveFridgesData({
-            ...fridgesData,
-            allFridges: updatedFridges
-        });
-
-        // 상태 업데이트
-        setFridge({ ...fridge, memo: memoText });
-        setShowMemoModal(false);
+        if (success) {
+            // 상태 업데이트
+            setFridge({ ...fridge, memo: memoText });
+            setShowMemoModal(false);
+        }
     };
 
     const handleAddCompartment = () => {
@@ -110,45 +109,93 @@ const FridgeDetailPage = () => {
 
         if (!fridge) return;
 
-        const fridgesData = StorageUtil.getFridgesData();
-        if (!fridgesData) return;
-
         const newCompartment: Compartment = {
             compartmentId: `${fridge.fridgeId}-${Date.now()}`,
             name: newCompartmentName,
             type: newCompartmentType
         };
 
-        // 냉장고 데이터 업데이트
-        const updatedFridges = fridgesData.allFridges.map(f =>
-            f.fridgeId === fridge.fridgeId
-                ? { ...f, compartments: [...f.compartments, newCompartment] }
-                : f
-        );
-
-        // localStorage에 저장
-        StorageUtil.saveFridgesData({
-            ...fridgesData,
-            allFridges: updatedFridges
-        });
-
-        // 상태 업데이트
-        setFridge({
-            ...fridge,
+        // 공유된 냉장고 업데이트 (모든 멤버에게 동기화)
+        const success = StorageUtil.updateSharedFridge(fridge.fridgeId, {
             compartments: [...fridge.compartments, newCompartment]
         });
 
-        setNewCompartmentName('');
-        setNewCompartmentType('COOL');
-        setShowAddCompartmentModal(false);
+        if (success) {
+            // 상태 업데이트
+            setFridge({
+                ...fridge,
+                compartments: [...fridge.compartments, newCompartment]
+            });
+
+            setNewCompartmentName('');
+            setNewCompartmentType('COOL');
+            setShowAddCompartmentModal(false);
+        }
     };
 
     const handleShareFridge = () => {
-        console.log('냉장고 공유 페이지로 이동');
+        if (fridge) {
+            navigate(`/fridges/${fridge.fridgeId}/share`);
+        }
     };
 
     const handleFridgeSettings = () => {
         console.log('냉장고 설정 페이지로 이동');
+    };
+
+    const handleIngredientFormChange = (field: string, value: any) => {
+        setIngredientForm(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleAddIngredient = () => {
+        if (!ingredientForm.name.trim()) {
+            setAlertMessage('식재료 이름을 입력해주세요');
+            setShowAlert(true);
+            return;
+        }
+
+        if (!ingredientForm.expirationDate) {
+            setAlertMessage('유통기한을 선택해주세요');
+            setShowAlert(true);
+            return;
+        }
+
+        const ingredientsData = StorageUtil.getIngredientsData() || { allIngredients: [] };
+
+        const newIngredient: Ingredient = {
+            ingredientId: `ingredient-${Date.now()}`,
+            compartmentId: selectedCompartmentId,
+            name: ingredientForm.name,
+            quantity: ingredientForm.quantity,
+            expirationDate: ingredientForm.expirationDate,
+            state: 'FRESH',
+            memo: ingredientForm.memo,
+            category: ingredientForm.category,
+            createdAt: new Date().toISOString()
+        };
+
+        const updatedIngredientsData = {
+            allIngredients: [...ingredientsData.allIngredients, newIngredient]
+        };
+
+        StorageUtil.saveIngredientsData(updatedIngredientsData);
+
+        // 폼 초기화
+        setIngredientForm({
+            name: '',
+            quantity: 1,
+            expirationDate: '',
+            memo: '',
+            category: '채소'
+        });
+
+        setShowIngredientModal(false);
+        setAlertMessage('식재료가 추가되었습니다');
+        setShowAlert(true);
+    };
+
+    const getCompartmentName = (compartmentId: string) => {
+        return fridge?.compartments.find(c => c.compartmentId === compartmentId)?.name || '보관칸';
     };
 
     const getCompartmentIcon = (type: string) => {
@@ -452,6 +499,128 @@ const FridgeDetailPage = () => {
                                 className="flex-1 px-4 py-3 bg-[#6789A5] hover:bg-[#52708E] text-white rounded-lg transition-colors"
                             >
                                 추가
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 식재료 등록 모달 */}
+            {showIngredientModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+                        <h3 className="text-xl font-semibold text-[#4B4B4B] mb-4">
+                            식재료 등록 - {getCompartmentName(selectedCompartmentId)}
+                        </h3>
+
+                        <div className="space-y-4 mb-6">
+                            {/* 식재료 이름 */}
+                            <div>
+                                <label className="block text-sm font-medium text-[#7A7E7B] mb-2">
+                                    식재료 이름
+                                </label>
+                                <input
+                                    type="text"
+                                    value={ingredientForm.name}
+                                    onChange={(e) => handleIngredientFormChange('name', e.target.value)}
+                                    placeholder="예: 양파, 계란, 우유"
+                                    className="w-full px-4 py-3 border border-[#D1D1D1] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6789A5] focus:border-transparent"
+                                    maxLength={50}
+                                />
+                            </div>
+
+                            {/* 수량 */}
+                            <div>
+                                <label className="block text-sm font-medium text-[#7A7E7B] mb-2">
+                                    <Hash className="w-4 h-4 inline mr-1" />
+                                    수량
+                                </label>
+                                <input
+                                    type="number"
+                                    value={ingredientForm.quantity}
+                                    onChange={(e) => handleIngredientFormChange('quantity', Math.max(1, parseInt(e.target.value) || 1))}
+                                    min="1"
+                                    className="w-full px-4 py-3 border border-[#D1D1D1] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6789A5] focus:border-transparent"
+                                />
+                            </div>
+
+                            {/* 유통기한 */}
+                            <div>
+                                <label className="block text-sm font-medium text-[#7A7E7B] mb-2">
+                                    <Calendar className="w-4 h-4 inline mr-1" />
+                                    유통기한
+                                </label>
+                                <input
+                                    type="date"
+                                    value={ingredientForm.expirationDate}
+                                    onChange={(e) => handleIngredientFormChange('expirationDate', e.target.value)}
+                                    min={new Date().toISOString().split('T')[0]}
+                                    className="w-full px-4 py-3 border border-[#D1D1D1] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6789A5] focus:border-transparent"
+                                />
+                            </div>
+
+                            {/* 카테고리 */}
+                            <div>
+                                <label className="block text-sm font-medium text-[#7A7E7B] mb-2">
+                                    카테고리
+                                </label>
+                                <select
+                                    value={ingredientForm.category}
+                                    onChange={(e) => handleIngredientFormChange('category', e.target.value)}
+                                    className="w-full px-4 py-3 border border-[#D1D1D1] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6789A5] focus:border-transparent"
+                                >
+                                    <option value="채소">채소</option>
+                                    <option value="과일">과일</option>
+                                    <option value="육류">육류</option>
+                                    <option value="해산물">해산물</option>
+                                    <option value="유제품">유제품</option>
+                                    <option value="곡류">곡류</option>
+                                    <option value="조미료">조미료</option>
+                                    <option value="음료">음료</option>
+                                    <option value="기타">기타</option>
+                                </select>
+                            </div>
+
+                            {/* 메모 */}
+                            <div>
+                                <label className="block text-sm font-medium text-[#7A7E7B] mb-2">
+                                    <FileText className="w-4 h-4 inline mr-1" />
+                                    메모 (선택사항)
+                                </label>
+                                <textarea
+                                    value={ingredientForm.memo}
+                                    onChange={(e) => handleIngredientFormChange('memo', e.target.value)}
+                                    placeholder="예: 유기농, 반값 할인으로 구매"
+                                    className="w-full px-4 py-3 border border-[#D1D1D1] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6789A5] focus:border-transparent resize-none"
+                                    rows={3}
+                                    maxLength={200}
+                                />
+                                <p className="text-xs text-[#878787] mt-1">{ingredientForm.memo.length}/200자</p>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowIngredientModal(false);
+                                    setIngredientForm({
+                                        name: '',
+                                        quantity: 1,
+                                        expirationDate: '',
+                                        memo: '',
+                                        category: '채소'
+                                    });
+                                }}
+                                className="flex-1 px-4 py-3 border border-[#D1D1D1] text-[#7A7E7B] rounded-lg hover:bg-[#F0EEEB] transition-colors"
+                            >
+                                취소
+                            </button>
+                            <button
+                                onClick={handleAddIngredient}
+                                disabled={!ingredientForm.name.trim() || !ingredientForm.expirationDate}
+                                className="flex-1 px-4 py-3 bg-[#6789A5] hover:bg-[#52708E] text-white rounded-lg transition-colors disabled:bg-[#D1D1D1] disabled:cursor-not-allowed"
+                            >
+                                등록
                             </button>
                         </div>
                     </div>
