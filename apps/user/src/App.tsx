@@ -1,35 +1,22 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import UserRoutes from './routes/UserRoutes.tsx';
+import UserHeader from './layout/header/UserHeader.tsx';
+import UserFooter from './layout/footer/UserFooter.jsx';
+import {BrowserRouter} from "react-router-dom";
 
-function App() {
-  const [count, setCount] = useState(0)
 
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+const App = () => {
+    console.log('App component rendering');
+    return (
+        <BrowserRouter>
+        <div className="flex flex-col min-h-screen dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+            <UserHeader />
+            <main className="flex-grow container mx-auto p-4 md:p-8">
+                <UserRoutes />
+            </main>
+            <UserFooter />
+        </div>
+            </BrowserRouter>
+    );
+};
 
-export default App
+export default App;
