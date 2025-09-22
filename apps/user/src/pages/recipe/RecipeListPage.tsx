@@ -1,303 +1,287 @@
-import { useState, useEffect } from 'react';
-import { Heart } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { X, Heart, Eye, Sun, Moon, Carrot, Utensils } from "lucide-react";
+import type { Recipe } from "../../__mocks__/recipes.mock";
+import { mockRecipes } from "../../__mocks__/recipes.mock";
+import { myIngredients } from "../../__mocks__/ingredients.mock";
 
-interface Recipe {
-    id: number;
-    title: string;
-    description: string;
-    difficulty: string;
-    cookingTime: number;
-    servings: number;
-    rating: number;
-    imageUrl: string;
-    matchRate: number;
-    availableIngredients: Array<{ name: string; required: string; available: string }>;
-    missingIngredients: Array<{ name: string; required: string }>;
-    isFavorite: boolean;
+function RecipeModal({
+                         recipe,
+                         onClose,
+                         onCook,
+                     }: {
+    recipe: Recipe;
+    onClose: () => void;
+    onCook: () => void;
+}) {
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+            <div className="relative w-full max-w-lg p-6 bg-white rounded-2xl dark:bg-[#333] border-2 border-[#D1D1D1] dark:border-[#404040]">
+                <button
+                    onClick={onClose}
+                    className="absolute p-2 transition-colors rounded-full top-3 right-3 text-[#878787] hover:bg-[#E0EBF7] dark:hover:bg-[#404040] dark:text-[#A0A0A0]"
+                >
+                    <X className="w-5 h-5" />
+                </button>
+                <div className="mb-4 text-6xl text-center">{recipe.emoji}</div>
+                <h2 className="mb-2 text-2xl font-bold text-[#4B4B4B] dark:text-[#E0E0E0]">
+                    {recipe.title}
+                </h2>
+                <p className="mb-4 text-[#878787] dark:text-[#A0A0A0]">
+                    {recipe.description}
+                </p>
+                <p className="mb-4 font-medium text-[#6789A5] dark:text-[#8cb5e2]">
+                    난이도: {recipe.difficulty}
+                </p>
+                <div className="space-y-4">
+                    <div>
+                        <h3 className="flex items-center gap-2 mb-2 font-semibold text-[#6789A5] dark:text-[#8cb5e2]">
+                            <Carrot className="w-5 h-5" /> 재료
+                        </h3>
+                        <ul className="pl-5 space-y-1 list-disc text-[#4B4B4B] dark:text-[#E0E0E0]">
+                            {recipe.ingredients.map((ing, idx) => (
+                                <li key={idx}>{ing}</li>
+                            ))}
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 className="flex items-center gap-2 mb-2 font-semibold text-[#6789A5] dark:text-[#8cb5e2]">
+                            <Utensils className="w-5 h-5" /> 조리 방법
+                        </h3>
+                        <ol className="pl-5 space-y-1 list-decimal text-[#4B4B4B] dark:text-[#E0E0E0]">
+                            {recipe.steps.map((step, idx) => (
+                                <li key={idx}>{step}</li>
+                            ))}
+                        </ol>
+                    </div>
+                </div>
+                <div className="mt-6 flex justify-end gap-3">
+                    <button
+                        onClick={onCook}
+                        className="px-4 py-2 bg-[#6789A5] hover:bg-[#5A7E9D] text-white rounded-lg font-medium transition-colors"
+                    >
+                        요리하기
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function CookingModal({
+                          recipe,
+                          onClose,
+                      }: {
+    recipe: Recipe;
+    onClose: () => void;
+}) {
+    const [usedIngredients, setUsedIngredients] = useState<string[]>([]);
+
+    const handleUseIngredient = (ingredient: string) => {
+        if (!usedIngredients.includes(ingredient)) {
+            setUsedIngredients([...usedIngredients, ingredient]);
+        }
+    };
+
+    const hasIngredient = (ingredient: string) =>
+        myIngredients.some((ing) => ing.name === ingredient);
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+            <div className="relative w-full max-w-lg p-6 bg-white rounded-2xl dark:bg-[#333] border-2 border-[#D1D1D1] dark:border-[#404040]">
+                <button
+                    onClick={onClose}
+                    className="absolute p-2 transition-colors rounded-full top-3 right-3 text-[#878787] hover:bg-[#E0EBF7] dark:hover:bg-[#404040] dark:text-[#A0A0A0]"
+                >
+                    <X className="w-5 h-5" />
+                </button>
+
+                <h2 className="mb-4 text-xl font-bold text-[#4B4B4B] dark:text-[#E0E0E0]">
+                    🧑‍🍳 {recipe.title} - 가지고 있는 재료
+                </h2>
+
+                <ul className="space-y-2">
+                    {recipe.ingredients.map((ing, idx) => {
+                        const isUsed = usedIngredients.includes(ing);
+                        const available = hasIngredient(ing);
+
+                        return (
+                            <li
+                                key={idx}
+                                className={`flex justify-between items-center px-4 py-2 border rounded-lg ${
+                                    isUsed
+                                        ? "bg-gray-200 dark:bg-gray-600 opacity-50"
+                                        : "bg-[#FAF7F2] dark:bg-[#444]"
+                                }`}
+                            >
+                                <span>{ing}</span>
+                                {available ? (
+                                    <button
+                                        disabled={isUsed}
+                                        onClick={() => handleUseIngredient(ing)}
+                                        className={`px-3 py-1 rounded-md text-sm font-medium ${
+                                            isUsed
+                                                ? "bg-gray-400 text-white cursor-not-allowed"
+                                                : "bg-[#6789A5] hover:bg-[#5A7E9D] text-white"
+                                        }`}
+                                    >
+                                        {isUsed ? "사용됨" : "사용하기"}
+                                    </button>
+                                ) : (
+                                    <span className="text-red-500 text-sm font-medium">
+                                        ❌ 없음
+                                    </span>
+                                )}
+                            </li>
+                        );
+                    })}
+                </ul>
+            </div>
+        </div>
+    );
 }
 
 const RecipeListPage = () => {
     const [recipes, setRecipes] = useState<Recipe[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [difficulty, setDifficulty] = useState('ALL');
-    const [loading, setLoading] = useState(true);
-
-    const handleRecipeDetail = (recipeId: number) => {
-        // 레시피 상세 페이지로 이동
-        console.log('Navigate to recipe detail:', recipeId);
-    };
+    const [showModal, setShowModal] = useState<Recipe | null>(null);
+    const [showCooking, setShowCooking] = useState<Recipe | null>(null);
+    const [isFavorite, setIsFavorite] = useState(false);
+    const [favorites, setFavorites] = useState<Recipe[]>([]);
+    const [isDarkMode, setIsDarkMode] = useState(false);
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
 
     useEffect(() => {
-        // Mock 데이터 로드
-        const mockRecipes: Recipe[] = [
-            {
-                id: 1,
-                title: '김치볶음밥',
-                description: '간단하게 만드는 김치볶음밥',
-                difficulty: 'EASY',
-                cookingTime: 15,
-                servings: 2,
-                rating: 4.5,
-                imageUrl: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400&h=300&fit=crop',
-                matchRate: 85,
-                availableIngredients: [
-                    { name: '김치', required: '200g', available: '300g' },
-                    { name: '계란', required: '2개', available: '5개' }
-                ],
-                missingIngredients: [{ name: '참기름', required: '1큰술' }],
-                isFavorite: false
-            },
-            {
-                id: 2,
-                title: '계란말이',
-                description: '부드러운 계란말이',
-                difficulty: 'EASY',
-                cookingTime: 10,
-                servings: 1,
-                rating: 4.3,
-                imageUrl: 'https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=400&h=300&fit=crop',
-                matchRate: 95,
-                availableIngredients: [
-                    { name: '계란', required: '3개', available: '5개' },
-                    { name: '대파', required: '1대', available: '2대' }
-                ],
-                missingIngredients: [],
-                isFavorite: true
-            },
-            {
-                id: 3,
-                title: '된장찌개',
-                description: '집에서 끓이는 진짜 된장찌개',
-                difficulty: 'MEDIUM',
-                cookingTime: 25,
-                servings: 3,
-                rating: 4.7,
-                imageUrl: 'https://images.unsplash.com/photo-1559847844-d9c3ad5e4a3c?w=400&h=300&fit=crop',
-                matchRate: 70,
-                availableIngredients: [
-                    { name: '양파', required: '1개', available: '2개' },
-                    { name: '두부', required: '1/2모', available: '1모' }
-                ],
-                missingIngredients: [
-                    { name: '된장', required: '2큰술' },
-                    { name: '멸치', required: '10마리' }
-                ],
-                isFavorite: false
-            }
-        ];
-
-        setTimeout(() => {
-            setRecipes(mockRecipes);
-            setLoading(false);
-        }, 500);
+        setRecipes([...mockRecipes]);
+        setCurrentIndex(0);
     }, []);
 
-    const handleFavoriteToggle = (recipeId: number) => {
-        setRecipes(prev =>
-            prev.map(recipe =>
-                recipe.id === recipeId
-                    ? { ...recipe, isFavorite: !recipe.isFavorite }
-                    : recipe
-            )
-        );
-    };
-
-    const handleSwipeNext = () => {
-        if (currentIndex < recipes.length - 1) {
-            setCurrentIndex(currentIndex + 1);
+    useEffect(() => {
+        if (recipes.length > 0) {
+            const current = recipes[currentIndex];
+            setIsFavorite(favorites.some((fav) => fav.id === current.id));
         }
+    }, [currentIndex, recipes, favorites]);
+
+    const handleNext = () => {
+        setCurrentIndex((prev) => (prev + 1) % recipes.length);
     };
 
-    const handleSwipePrev = () => {
-        if (currentIndex > 0) {
-            setCurrentIndex(currentIndex - 1);
+    const handleView = (recipe: Recipe) => {
+        setShowModal(recipe);
+    };
+
+    const handleFavorite = (recipe: Recipe) => {
+        if (favorites.some((fav) => fav.id === recipe.id)) {
+            setFavorites(favorites.filter((fav) => fav.id !== recipe.id));
+            setToastMessage("찜 해제했어요~");
+        } else {
+            setFavorites([...favorites, recipe]);
+            setToastMessage("추가되었어요~");
         }
+        setIsFavorite(!isFavorite);
+
+        setTimeout(() => setToastMessage(null), 1500);
+        setTimeout(() => handleNext(), 500);
     };
 
-    const getDifficultyColor = (diff: string) => {
-        switch (diff) {
-            case 'EASY': return 'text-green-600 bg-green-100';
-            case 'MEDIUM': return 'text-yellow-600 bg-yellow-100';
-            case 'HARD': return 'text-red-600 bg-red-100';
-            default: return 'text-gray-600 bg-gray-100';
-        }
+    const toggleDarkMode = () => {
+        setIsDarkMode(!isDarkMode);
+        document.body.classList.toggle("dark", !isDarkMode);
     };
 
-    if (loading) {
+    if (recipes.length === 0) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
-                    <p className="text-gray-600">레시피를 불러오는 중...</p>
-                </div>
+            <div className="min-h-screen flex items-center justify-center bg-[#FAF7F2] dark:bg-[#242424]">
+                <p className="text-[#878787] dark:text-[#A0A0A0]">레시피를 불러오는 중...</p>
             </div>
         );
     }
 
-    return (
-        <div className="min-h-screen bg-gray-50">
-            {/* 헤더 */}
-            <header className="bg-white shadow-sm border-b">
-                <div className="max-w-4xl mx-auto px-4 py-4">
-                    <h1 className="text-2xl font-bold text-gray-800">추천 레시피</h1>
-                    <p className="text-gray-600 mt-1">냉장고 속 재료로 만들 수 있는 레시피를 추천해드려요</p>
-                </div>
-            </header>
+    const currentRecipe = recipes[currentIndex];
 
-            {/* 필터 */}
-            <div className="bg-white border-b">
-                <div className="max-w-4xl mx-auto px-4 py-4">
-                    <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-                        {['ALL', 'EASY', 'MEDIUM', 'HARD'].map((level) => (
-                            <button
-                                key={level}
-                                onClick={() => setDifficulty(level)}
-                                className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${
-                                    difficulty === level
-                                        ? 'bg-emerald-500 text-white'
-                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                }`}
-                            >
-                                {level === 'ALL' ? '전체' : level === 'EASY' ? '쉬움' : level === 'MEDIUM' ? '보통' : '어려움'}
-                            </button>
-                        ))}
-                    </div>
+    return (
+        <div className="min-h-screen bg-[#FAF7F2] dark:bg-[#242424] flex flex-col items-center justify-center p-6 transition-colors">
+            {/* 다크모드 토글 */}
+            <button
+                onClick={toggleDarkMode}
+                className="fixed top-4 right-4 flex items-center justify-center w-10 h-10 rounded-full bg-[#E0EBF7] dark:bg-[#333] transition-colors focus:outline-none"
+            >
+                {isDarkMode ? (
+                    <Sun className="text-[#878787] dark:text-[#A0A0A0]" />
+                ) : (
+                    <Moon className="text-[#878787]" />
+                )}
+            </button>
+
+            {/* 레시피 카드 */}
+            <div className="relative w-full max-w-md p-6 text-center bg-white shadow-xl rounded-2xl dark:bg-[#333] border-2 border-[#D1D1D1] dark:border-[#404040]">
+                <div className="mb-4 text-8xl">{currentRecipe.emoji}</div>
+                <h2 className="mb-2 text-2xl font-bold text-[#4B4B4B] dark:text-[#E0E0E0]">
+                    {currentRecipe.title}
+                </h2>
+                <p className="mb-2 text-[#878787] dark:text-[#A0A0A0]">
+                    {currentRecipe.description}
+                </p>
+                <p className="mb-6 text-sm text-[#6789A5] dark:text-[#8cb5e2]">
+                    난이도: {currentRecipe.difficulty}
+                </p>
+                <div className="flex justify-center gap-3">
+                    <button
+                        onClick={handleNext}
+                        className="flex-1 flex items-center justify-center px-4 py-2 bg-[#E0EBF7] hover:bg-[#6789A5] text-[#6789A5] hover:text-white font-medium rounded-lg transition-colors"
+                    >
+                        <X className="w-5 h-5" />
+                        다음
+                    </button>
+                    <button
+                        onClick={() => handleView(currentRecipe)}
+                        className="flex-1 flex items-center justify-center px-4 py-2 text-white font-medium bg-[#6789A5] hover:bg-[#5A7E9D] rounded-lg transition-colors"
+                    >
+                        <Eye className="w-5 h-5" />
+                        보기
+                    </button>
+                    <button
+                        onClick={() => handleFavorite(currentRecipe)}
+                        className={`flex-1 flex items-center justify-center px-4 py-2 text-white font-medium rounded-lg transition-colors ${
+                            isFavorite ? "bg-red-500 hover:bg-red-600" : "bg-[#D1D1D1] hover:bg-[#BDBDBD]"
+                        }`}
+                    >
+                        <Heart className="w-5 h-5" />
+                        찜하기
+                    </button>
                 </div>
             </div>
 
-            {/* 레시피 카드 스와이퍼 */}
-            <div className="max-w-4xl mx-auto px-4 py-6">
-                {recipes.length > 0 ? (
-                    <div className="relative">
-                        {/* 현재 레시피 카드 */}
-                        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-                            <div className="relative">
-                                <img
-                                    src={recipes[currentIndex].imageUrl}
-                                    alt={recipes[currentIndex].title}
-                                    className="w-full h-64 object-cover"
-                                />
-                                <div className="absolute top-4 left-4">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getDifficultyColor(recipes[currentIndex].difficulty)}`}>
-                    {recipes[currentIndex].difficulty === 'EASY' ? '쉬움' :
-                        recipes[currentIndex].difficulty === 'MEDIUM' ? '보통' : '어려움'}
-                  </span>
-                                </div>
-                                <div className="absolute top-4 right-4">
-                                    <div className="bg-emerald-500 text-white px-3 py-1 rounded-full text-sm font-bold">
-                                        {recipes[currentIndex].matchRate}% 매치
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => handleFavoriteToggle(recipes[currentIndex].id)}
-                                    className="absolute bottom-4 right-4 p-3 bg-white rounded-full shadow-lg hover:scale-110 transition-transform"
-                                >
-                                    <Heart
-                                        className={`w-6 h-6 ${
-                                            recipes[currentIndex].isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-400'
-                                        }`}
-                                    />
-                                </button>
-                            </div>
+            {/* 토스트 메시지 */}
+            {toastMessage && (
+                <div className="fixed bottom-20 px-6 py-3 bg-[#6789A5] text-white font-medium rounded-lg shadow-lg animate-bounce">
+                    {toastMessage}
+                </div>
+            )}
 
-                            <div className="p-6">
-                                <h2 className="text-2xl font-bold text-gray-800 mb-2">{recipes[currentIndex].title}</h2>
-                                <p className="text-gray-600 mb-4">{recipes[currentIndex].description}</p>
+            {/* 상세 모달 */}
+            {showModal && (
+                <RecipeModal
+                    recipe={showModal}
+                    onClose={() => setShowModal(null)}
+                    onCook={() => {
+                        setShowModal(null);
+                        setShowCooking(showModal);
+                    }}
+                />
+            )}
 
-                                <div className="flex items-center gap-4 mb-4 text-sm text-gray-500">
-                                    <span>⏰ {recipes[currentIndex].cookingTime}분</span>
-                                    <span>👥 {recipes[currentIndex].servings}인분</span>
-                                    <span>⭐ {recipes[currentIndex].rating}</span>
-                                </div>
+            {/* 요리 모달 */}
+            {showCooking && (
+                <CookingModal recipe={showCooking} onClose={() => setShowCooking(null)} />
+            )}
 
-                                {/* 보유 재료 */}
-                                {recipes[currentIndex].availableIngredients.length > 0 && (
-                                    <div className="mb-4">
-                                        <h3 className="font-semibold text-gray-800 mb-2">보유 재료</h3>
-                                        <div className="flex flex-wrap gap-2">
-                                            {recipes[currentIndex].availableIngredients.map((ingredient, idx) => (
-                                                <span key={idx} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
-                          {ingredient.name} ({ingredient.available})
-                        </span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* 부족한 재료 */}
-                                {recipes[currentIndex].missingIngredients.length > 0 && (
-                                    <div className="mb-6">
-                                        <h3 className="font-semibold text-gray-800 mb-2">추가 필요 재료</h3>
-                                        <div className="flex flex-wrap gap-2">
-                                            {recipes[currentIndex].missingIngredients.map((ingredient, idx) => (
-                                                <span key={idx} className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm">
-                          {ingredient.name} ({ingredient.required})
-                        </span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                <button
-                                    onClick={() => handleRecipeDetail(recipes[currentIndex].id)}
-                                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 rounded-lg transition-colors"
-                                >
-                                    레시피 자세히 보기
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* 네비게이션 버튼 */}
-                        <div className="flex justify-between items-center mt-6">
-                            <button
-                                onClick={handleSwipePrev}
-                                disabled={currentIndex === 0}
-                                className={`px-6 py-3 rounded-lg font-medium transition-colors ${
-                                    currentIndex === 0
-                                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                                }`}
-                            >
-                                이전 레시피
-                            </button>
-
-                            <div className="text-center">
-                <span className="text-sm text-gray-500">
-                  {currentIndex + 1} / {recipes.length}
-                </span>
-                                <div className="flex gap-2 mt-2">
-                                    {recipes.map((_, idx) => (
-                                        <button
-                                            key={idx}
-                                            onClick={() => setCurrentIndex(idx)}
-                                            className={`w-2 h-2 rounded-full transition-colors ${
-                                                idx === currentIndex ? 'bg-emerald-500' : 'bg-gray-300'
-                                            }`}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-
-                            <button
-                                onClick={handleSwipeNext}
-                                disabled={currentIndex === recipes.length - 1}
-                                className={`px-6 py-3 rounded-lg font-medium transition-colors ${
-                                    currentIndex === recipes.length - 1
-                                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                        : 'bg-emerald-500 hover:bg-emerald-600 text-white'
-                                }`}
-                            >
-                                다음 레시피
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="text-center py-12">
-                        <div className="text-6xl mb-4">🍽️</div>
-                        <h2 className="text-xl font-semibold text-gray-800 mb-2">추천할 레시피가 없어요</h2>
-                        <p className="text-gray-600">냉장고에 재료를 추가해보세요!</p>
-                    </div>
-                )}
+            {/* 배경 장식 */}
+            <div className="fixed inset-0 -z-10 overflow-hidden">
+                <div className="absolute top-20 right-10 w-32 h-32 bg-[#E0EBF7] rounded-full opacity-30"></div>
+                <div className="absolute top-40 left-20 w-24 h-24 bg-[#E0EBF7] rounded-full opacity-40"></div>
+                <div className="absolute bottom-32 right-32 w-40 h-40 bg-[#E0EBF7] rounded-full opacity-20"></div>
+                <div className="absolute bottom-20 left-10 w-28 h-28 bg-[#E0EBF7] rounded-full opacity-30"></div>
             </div>
         </div>
     );

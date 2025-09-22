@@ -8,11 +8,12 @@ import SignupPage from '../pages/auth/SignupPage.tsx';
 import RecipeListPage from '../pages/recipe/RecipeListPage.tsx';
 import RecipeDetailPage from '../pages/recipe/RecipeDetailPage.tsx';
 import NotificationPage from '../pages/notification/NotificationPage.tsx';
-// import MyProfileEditPage from '../pages/mypage/MyProfileEditPage.tsx';
+import MyProfileEditPage from '../pages/mypage/MyProfileEditPage.tsx';
 import MyRecipePage from '../pages/mypage/MyRecipePage.tsx';
 import MyStatisticsPage from '../pages/mypage/MyStatisticsPage.tsx';
 import FridgeListPage from '../pages/refrigerator/FridgeListPage.tsx';
 import FridgeDetailPage from '../pages/refrigerator/FridgeDetailPage.tsx';
+import FridgeSharePage from '../pages/refrigerator/FridgeSharePage.tsx';
 import CompartmentDetailPage from '../pages/refrigerator/CompartmentDetailPage.tsx';
 import NotFoundPage from '../pages/error/NotFoundPage.tsx';
 import FindPasswordPage from "../pages/auth/FindPasswordPage.tsx";
@@ -31,11 +32,12 @@ const UserRoutes = () => {
                 <Route element={<UserRouteGuard />}>
                     <Route path="/fridges" element={<FridgeListPage />} />
                     <Route path="/fridges/:fridgeId" element={<FridgeDetailPage />} />
+                    <Route path="/fridges/:fridgeId/share" element={<FridgeSharePage />} />
                     <Route path="/fridges/:fridgeId/:compartmentId" element={<CompartmentDetailPage />} />
                     <Route path="/recipes" element={<RecipeListPage />} />
                     <Route path="/recipes/:recipeId" element={<RecipeDetailPage />} />
                     <Route path="/notifications" element={<NotificationPage />} />
-                    {/*<Route path="/mypage/profile" element={<MyProfileEditPage />} />*/}
+                    <Route path="/mypage/profile" element={<MyProfileEditPage />} />
                     <Route path="/mypage/recipe" element={<MyRecipePage />} />
                     <Route path="/mypage/statistics" element={<MyStatisticsPage />} />
                 </Route>

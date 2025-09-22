@@ -1,40 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Users, Settings, StickyNote, Thermometer, Snowflake, Home } from 'lucide-react';
+import { ArrowLeft, Plus, Users, Settings, StickyNote, Thermometer, Snowflake, Home, Calendar, Hash, FileText } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { StorageUtil, type Fridge, type Compartment, type Ingredient } from '../../utils/localStorage';
 
-// Tailwind CSS 및 Inter 폰트를 로드하기 위한 스크립트
-const TW_SCRIPT = `
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-    }
-  </style>
-`;
-
-// 보관칸 타입 인터페이스
-interface Compartment {
-    id: number;
-    name: string;
-    type: 'FROZEN' | 'REFRIGERATED' | 'ROOM_TEMP';
-    ingredientCount: number;
-    createdAt: string;
-}
-
-// 냉장고 상세 정보 인터페이스
-interface FridgeDetail {
-    id: number;
-    name: string;
-    isDefault: boolean;
-    isFavorite: boolean;
-    ownerId: number;
-    memberCount: number;
-    ingredientCount: number;
-    memo: string;
-    compartments: Compartment[];
-}
 
 // window.alert를 대체하는 커스텀 모달 컴포넌트
 const CustomModal: React.FC<{ message: string; onClose: () => void }> = ({ message, onClose }) => {
@@ -55,90 +23,78 @@ const CustomModal: React.FC<{ message: string; onClose: () => void }> = ({ messa
 };
 
 const FridgeDetailPage = () => {
-    const [fridge, setFridge] = useState<FridgeDetail | null>(null);
+    const navigate = useNavigate();
+    const { fridgeId } = useParams<{ fridgeId: string }>();
+    const [fridge, setFridge] = useState<Fridge | null>(null);
     const [loading, setLoading] = useState(true);
     const [showMemoModal, setShowMemoModal] = useState(false);
     const [showAddCompartmentModal, setShowAddCompartmentModal] = useState(false);
     const [memoText, setMemoText] = useState('');
     const [newCompartmentName, setNewCompartmentName] = useState('');
-    const [newCompartmentType, setNewCompartmentType] = useState<'FROZEN' | 'REFRIGERATED' | 'ROOM_TEMP'>('REFRIGERATED');
+    const [newCompartmentType, setNewCompartmentType] = useState<'COOL' | 'FREEZE' | 'PANTRY'>('COOL');
     const [showAlert, setShowAlert] = useState(false);
     const [alertMessage, setAlertMessage] = useState('');
+    const [showIngredientModal, setShowIngredientModal] = useState(false);
+    const [selectedCompartmentId, setSelectedCompartmentId] = useState<string>('');
+    const [ingredientForm, setIngredientForm] = useState({
+        name: '',
+        quantity: 1,
+        expirationDate: '',
+        memo: '',
+        category: '채소'
+    });
 
     // 보관칸 타입 정보 (아이콘 색상 포함)
     const compartmentTypes = [
-        { key: 'FROZEN' as const, label: '냉동', icon: Snowflake, color: 'bg-[#6789A5]' },
-        { key: 'REFRIGERATED' as const, label: '냉장', icon: Thermometer, color: 'bg-green-500' },
-        { key: 'ROOM_TEMP' as const, label: '실온', icon: Home, color: 'bg-yellow-500' }
+        { key: 'FREEZE' as const, label: '냉동', icon: Snowflake, color: 'bg-[#6789A5]' },
+        { key: 'COOL' as const, label: '냉장', icon: Thermometer, color: 'bg-green-500' },
+        { key: 'PANTRY' as const, label: '실온', icon: Home, color: 'bg-yellow-500' }
     ];
 
     useEffect(() => {
-        // 컴포넌트 마운트 시 Tailwind CSS 및 폰트 스크립트 삽입
-        const script = document.createElement('div');
-        script.innerHTML = TW_SCRIPT;
-        document.head.appendChild(script);
-
         loadFridgeDetail();
-
-        return () => {
-            // 컴포넌트 언마운트 시 스크립트 제거
-            document.head.removeChild(script);
-        };
-    }, []);
+    }, [fridgeId]);
 
     const loadFridgeDetail = () => {
-        // Mock 데이터 로드
-        const mockFridge: FridgeDetail = {
-            id: 1,
-            name: '우리집 냉장고',
-            isDefault: true,
-            isFavorite: true,
-            ownerId: 1,
-            memberCount: 2,
-            ingredientCount: 15,
-            memo: '우유 떨어지면 구매하기\n계란 유통기한 체크',
-            compartments: [
-                {
-                    id: 1,
-                    name: '야채칸',
-                    type: 'REFRIGERATED',
-                    ingredientCount: 8,
-                    createdAt: '2024-01-15T10:30:00Z'
-                },
-                {
-                    id: 2,
-                    name: '냉동실',
-                    type: 'FROZEN',
-                    ingredientCount: 5,
-                    createdAt: '2024-01-15T10:35:00Z'
-                },
-                {
-                    id: 3,
-                    name: '상온 보관함',
-                    type: 'ROOM_TEMP',
-                    ingredientCount: 2,
-                    createdAt: '2024-01-15T10:40:00Z'
-                }
-            ]
-        };
+        if (!fridgeId) {
+            navigate('/fridges');
+            return;
+        }
 
-        setTimeout(() => {
-            setFridge(mockFridge);
-            setMemoText(mockFridge.memo);
-            setLoading(false);
-        }, 500);
+        const fridgesData = StorageUtil.getFridgesData();
+        if (!fridgesData) {
+            navigate('/fridges');
+            return;
+        }
+
+        const targetFridge = fridgesData.allFridges.find(f => f.fridgeId === fridgeId);
+        if (!targetFridge) {
+            navigate('/fridges');
+            return;
+        }
+
+        setFridge(targetFridge);
+        setMemoText(targetFridge.memo);
+        setLoading(false);
     };
 
     const handleBack = () => {
-        console.log('냉장고 목록으로 돌아가기');
+        navigate('/fridges');
     };
 
-    const handleCompartmentClick = (compartmentId: number) => {
-        console.log('보관칸 상세 보기:', compartmentId);
+    const handleCompartmentClick = (compartmentId: string) => {
+        setSelectedCompartmentId(compartmentId);
+        setShowIngredientModal(true);
     };
 
     const handleMemoSave = () => {
-        if (fridge) {
+        if (!fridge) return;
+
+        // 공유된 냉장고 업데이트 (모든 멤버에게 동기화)
+        const success = StorageUtil.updateSharedFridge(fridge.fridgeId, { memo: memoText });
+
+        if (success) {
+            // 상태 업데이트
             setFridge({ ...fridge, memo: memoText });
             setShowMemoModal(false);
         }
@@ -151,32 +107,95 @@ const FridgeDetailPage = () => {
             return;
         }
 
-        if (fridge) {
-            const newCompartment: Compartment = {
-                id: Date.now(),
-                name: newCompartmentName,
-                type: newCompartmentType,
-                ingredientCount: 0,
-                createdAt: new Date().toISOString()
-            };
+        if (!fridge) return;
 
+        const newCompartment: Compartment = {
+            compartmentId: `${fridge.fridgeId}-${Date.now()}`,
+            name: newCompartmentName,
+            type: newCompartmentType
+        };
+
+        // 공유된 냉장고 업데이트 (모든 멤버에게 동기화)
+        const success = StorageUtil.updateSharedFridge(fridge.fridgeId, {
+            compartments: [...fridge.compartments, newCompartment]
+        });
+
+        if (success) {
+            // 상태 업데이트
             setFridge({
                 ...fridge,
                 compartments: [...fridge.compartments, newCompartment]
             });
 
             setNewCompartmentName('');
-            setNewCompartmentType('REFRIGERATED');
+            setNewCompartmentType('COOL');
             setShowAddCompartmentModal(false);
         }
     };
 
     const handleShareFridge = () => {
-        console.log('냉장고 공유 페이지로 이동');
+        if (fridge) {
+            navigate(`/fridges/${fridge.fridgeId}/share`);
+        }
     };
 
     const handleFridgeSettings = () => {
         console.log('냉장고 설정 페이지로 이동');
+    };
+
+    const handleIngredientFormChange = (field: string, value: any) => {
+        setIngredientForm(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleAddIngredient = () => {
+        if (!ingredientForm.name.trim()) {
+            setAlertMessage('식재료 이름을 입력해주세요');
+            setShowAlert(true);
+            return;
+        }
+
+        if (!ingredientForm.expirationDate) {
+            setAlertMessage('유통기한을 선택해주세요');
+            setShowAlert(true);
+            return;
+        }
+
+        const ingredientsData = StorageUtil.getIngredientsData() || { allIngredients: [] };
+
+        const newIngredient: Ingredient = {
+            ingredientId: `ingredient-${Date.now()}`,
+            compartmentId: selectedCompartmentId,
+            name: ingredientForm.name,
+            quantity: ingredientForm.quantity,
+            expirationDate: ingredientForm.expirationDate,
+            state: 'FRESH',
+            memo: ingredientForm.memo,
+            category: ingredientForm.category,
+            createdAt: new Date().toISOString()
+        };
+
+        const updatedIngredientsData = {
+            allIngredients: [...ingredientsData.allIngredients, newIngredient]
+        };
+
+        StorageUtil.saveIngredientsData(updatedIngredientsData);
+
+        // 폼 초기화
+        setIngredientForm({
+            name: '',
+            quantity: 1,
+            expirationDate: '',
+            memo: '',
+            category: '채소'
+        });
+
+        setShowIngredientModal(false);
+        setAlertMessage('식재료가 추가되었습니다');
+        setShowAlert(true);
+    };
+
+    const getCompartmentName = (compartmentId: string) => {
+        return fridge?.compartments.find(c => c.compartmentId === compartmentId)?.name || '보관칸';
     };
 
     const getCompartmentIcon = (type: string) => {
@@ -193,6 +212,24 @@ const FridgeDetailPage = () => {
     const getTypeLabel = (type: string) => {
         const typeInfo = compartmentTypes.find(t => t.key === type);
         return typeInfo?.label || type;
+    };
+
+    const getIngredientCount = (compartmentId: string) => {
+        const ingredientsData = StorageUtil.getIngredientsData();
+        if (!ingredientsData) return 0;
+
+        return ingredientsData.allIngredients.filter(
+            ingredient => ingredient.compartmentId === compartmentId &&
+            ingredient.state !== 'CONSUMED' && ingredient.state !== 'DISPOSED'
+        ).length;
+    };
+
+    const getTotalIngredientCount = () => {
+        if (!fridge) return 0;
+
+        return fridge.compartments.reduce((total, compartment) => {
+            return total + getIngredientCount(compartment.compartmentId);
+        }, 0);
     };
 
     if (loading) {
@@ -272,7 +309,7 @@ const FridgeDetailPage = () => {
 
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
                         <div className="text-center p-4 bg-[#F0EEEB] rounded-lg">
-                            <p className="text-2xl font-bold text-[#4B4B4B]">{fridge.ingredientCount}</p>
+                            <p className="text-2xl font-bold text-[#4B4B4B]">{getTotalIngredientCount()}</p>
                             <p className="text-sm text-[#7A7E7B]">총 식재료</p>
                         </div>
                         <div className="text-center p-4 bg-[#F0EEEB] rounded-lg">
@@ -280,7 +317,7 @@ const FridgeDetailPage = () => {
                             <p className="text-sm text-[#7A7E7B]">보관칸</p>
                         </div>
                         <div className="text-center p-4 bg-[#F0EEEB] rounded-lg">
-                            <p className="text-2xl font-bold text-[#4B4B4B]">{fridge.memberCount}</p>
+                            <p className="text-2xl font-bold text-[#4B4B4B]">{fridge.members.length}</p>
                             <p className="text-sm text-[#7A7E7B]">멤버</p>
                         </div>
                     </div>
@@ -335,8 +372,8 @@ const FridgeDetailPage = () => {
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         {fridge.compartments.map((compartment) => (
                             <div
-                                key={compartment.id}
-                                onClick={() => handleCompartmentClick(compartment.id)}
+                                key={compartment.compartmentId}
+                                onClick={() => handleCompartmentClick(compartment.compartmentId)}
                                 className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md cursor-pointer transition-shadow"
                             >
                                 <div className="flex items-center justify-between mb-4">
@@ -352,13 +389,9 @@ const FridgeDetailPage = () => {
                                 </div>
 
                                 <div className="text-center p-4 bg-[#F0EEEB] rounded-lg mb-3">
-                                    <p className="text-2xl font-bold text-[#4B4B4B]">{compartment.ingredientCount}</p>
+                                    <p className="text-2xl font-bold text-[#4B4B4B]">{getIngredientCount(compartment.compartmentId)}</p>
                                     <p className="text-sm text-[#7A7E7B]">식재료</p>
                                 </div>
-
-                                <p className="text-xs text-[#878787] text-center">
-                                    {new Date(compartment.createdAt).toLocaleDateString('ko-KR')} 생성
-                                </p>
                             </div>
                         ))}
                     </div>
@@ -466,6 +499,128 @@ const FridgeDetailPage = () => {
                                 className="flex-1 px-4 py-3 bg-[#6789A5] hover:bg-[#52708E] text-white rounded-lg transition-colors"
                             >
                                 추가
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 식재료 등록 모달 */}
+            {showIngredientModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+                        <h3 className="text-xl font-semibold text-[#4B4B4B] mb-4">
+                            식재료 등록 - {getCompartmentName(selectedCompartmentId)}
+                        </h3>
+
+                        <div className="space-y-4 mb-6">
+                            {/* 식재료 이름 */}
+                            <div>
+                                <label className="block text-sm font-medium text-[#7A7E7B] mb-2">
+                                    식재료 이름
+                                </label>
+                                <input
+                                    type="text"
+                                    value={ingredientForm.name}
+                                    onChange={(e) => handleIngredientFormChange('name', e.target.value)}
+                                    placeholder="예: 양파, 계란, 우유"
+                                    className="w-full px-4 py-3 border border-[#D1D1D1] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6789A5] focus:border-transparent"
+                                    maxLength={50}
+                                />
+                            </div>
+
+                            {/* 수량 */}
+                            <div>
+                                <label className="block text-sm font-medium text-[#7A7E7B] mb-2">
+                                    <Hash className="w-4 h-4 inline mr-1" />
+                                    수량
+                                </label>
+                                <input
+                                    type="number"
+                                    value={ingredientForm.quantity}
+                                    onChange={(e) => handleIngredientFormChange('quantity', Math.max(1, parseInt(e.target.value) || 1))}
+                                    min="1"
+                                    className="w-full px-4 py-3 border border-[#D1D1D1] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6789A5] focus:border-transparent"
+                                />
+                            </div>
+
+                            {/* 유통기한 */}
+                            <div>
+                                <label className="block text-sm font-medium text-[#7A7E7B] mb-2">
+                                    <Calendar className="w-4 h-4 inline mr-1" />
+                                    유통기한
+                                </label>
+                                <input
+                                    type="date"
+                                    value={ingredientForm.expirationDate}
+                                    onChange={(e) => handleIngredientFormChange('expirationDate', e.target.value)}
+                                    min={new Date().toISOString().split('T')[0]}
+                                    className="w-full px-4 py-3 border border-[#D1D1D1] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6789A5] focus:border-transparent"
+                                />
+                            </div>
+
+                            {/* 카테고리 */}
+                            <div>
+                                <label className="block text-sm font-medium text-[#7A7E7B] mb-2">
+                                    카테고리
+                                </label>
+                                <select
+                                    value={ingredientForm.category}
+                                    onChange={(e) => handleIngredientFormChange('category', e.target.value)}
+                                    className="w-full px-4 py-3 border border-[#D1D1D1] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6789A5] focus:border-transparent"
+                                >
+                                    <option value="채소">채소</option>
+                                    <option value="과일">과일</option>
+                                    <option value="육류">육류</option>
+                                    <option value="해산물">해산물</option>
+                                    <option value="유제품">유제품</option>
+                                    <option value="곡류">곡류</option>
+                                    <option value="조미료">조미료</option>
+                                    <option value="음료">음료</option>
+                                    <option value="기타">기타</option>
+                                </select>
+                            </div>
+
+                            {/* 메모 */}
+                            <div>
+                                <label className="block text-sm font-medium text-[#7A7E7B] mb-2">
+                                    <FileText className="w-4 h-4 inline mr-1" />
+                                    메모 (선택사항)
+                                </label>
+                                <textarea
+                                    value={ingredientForm.memo}
+                                    onChange={(e) => handleIngredientFormChange('memo', e.target.value)}
+                                    placeholder="예: 유기농, 반값 할인으로 구매"
+                                    className="w-full px-4 py-3 border border-[#D1D1D1] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6789A5] focus:border-transparent resize-none"
+                                    rows={3}
+                                    maxLength={200}
+                                />
+                                <p className="text-xs text-[#878787] mt-1">{ingredientForm.memo.length}/200자</p>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowIngredientModal(false);
+                                    setIngredientForm({
+                                        name: '',
+                                        quantity: 1,
+                                        expirationDate: '',
+                                        memo: '',
+                                        category: '채소'
+                                    });
+                                }}
+                                className="flex-1 px-4 py-3 border border-[#D1D1D1] text-[#7A7E7B] rounded-lg hover:bg-[#F0EEEB] transition-colors"
+                            >
+                                취소
+                            </button>
+                            <button
+                                onClick={handleAddIngredient}
+                                disabled={!ingredientForm.name.trim() || !ingredientForm.expirationDate}
+                                className="flex-1 px-4 py-3 bg-[#6789A5] hover:bg-[#52708E] text-white rounded-lg transition-colors disabled:bg-[#D1D1D1] disabled:cursor-not-allowed"
+                            >
+                                등록
                             </button>
                         </div>
                     </div>

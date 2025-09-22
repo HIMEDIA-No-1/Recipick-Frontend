@@ -11,6 +11,7 @@
     "tailwind:init": "node ./node_modules/tailwindcss/dist/cli.js init -p"
   },
   "dependencies": {
+    "framer-motion": "^12.23.16",
     "lodash-es": "^4.17.21",
     "lucide-react": "^0.544.0",
     "react": "^19.1.1",
